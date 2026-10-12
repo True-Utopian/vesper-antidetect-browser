@@ -122,8 +122,17 @@ export class VesperBrowser implements ProfileEngine {
       return browser.executablePath;
     })().catch(error => { this.installation = undefined; throw error; });
   }
-  async extensions() { await this.init(); return this.extensionStore.list(); }
-  async installExtension(file:string) { return this.serial('extension-install',async()=>{await this.init();return this.extensionStore.installZip(file);}); }
+  async extensions() { return this.serial('extension-catalog',async()=>{await this.init();return this.extensionStore.list();}); }
+  async installExtension(file:string) { return this.serial('extension-catalog',async()=>{await this.init();return this.extensionStore.installZip(file);}); }
+  async removeExtension(id:string) {
+    return this.serial('extension-catalog',async()=>{
+      validateExtensionIds([id]);
+      const assigned=(await this.listProfiles(true)).filter(profile=>profile.settings.extensions?.includes(id));
+      if(assigned.length)throw Object.assign(new Error(`Remove this extension from ${assigned.length} assigned profile${assigned.length===1?'':'s'} first, including profiles in the trash.`),{status:409});
+      await this.extensionStore.remove(id);
+      return {id,removed:true};
+    });
+  }
   async profileExtensions(id:string) { return this.serial(id,async()=>{const profile=await this.readProfile(id);return this.extensionStore.describe(join(this.profileDir(id),'browser'),profile.settings.extensions??[]);}); }
   async ready() { await this.init(); await this.executable(); }
   async stageNativeKernel(executablePath: string) {
@@ -256,7 +265,7 @@ export class VesperBrowser implements ProfileEngine {
     return structuredClone(settings) as LocalProfileSettings;
   }
   async create(settings: Record<string, unknown>): Promise<{ id: string }> {
-    return this.serial('profile-create', () => this.createUnlocked(settings));
+    return this.serial('extension-catalog', () => this.serial('profile-create', () => this.createUnlocked(settings)));
   }
   private async createUnlocked(settings: Record<string, unknown>): Promise<{ id: string }> {
     let validated: LocalProfileSettings;
@@ -284,7 +293,7 @@ export class VesperBrowser implements ProfileEngine {
   async readProfile(id: string): Promise<LocalProfile> { await this.init(); return JSON.parse(await readFile(join(this.profileDir(id), 'manifest.json'), 'utf8')); }
   async update(id: string, settings: Record<string, unknown>): Promise<void> {
     const { proxy: requestedProxy, ...rest } = settings;
-    return this.serial(id, async () => {
+    return this.serial('extension-catalog', () => this.serial(id, async () => {
       const profile = await this.readProfile(id), session = await this.session(id);
       if (session && isAlive(session.pid)) throw new Error('Stop the profile before changing settings');
       const validated = this.validateSettings({ ...profile.settings, ...rest, ...(requestedProxy == null ? {} : { proxy: requestedProxy }) });
@@ -296,7 +305,7 @@ export class VesperBrowser implements ProfileEngine {
       if (validated.name !== undefined) profile.name = validated.name;
       profile.revision = (profile.revision ?? 1) + 1;
       await durableWrite(join(this.profileDir(id), 'manifest.json'), JSON.stringify(profile, null, 2));
-    });
+    }));
   }
   private async session(id: string): Promise<Session | undefined> {
     try {

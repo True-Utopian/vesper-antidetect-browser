@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { extensionZip, zipFiles } from '../../../scripts/fixtures/extension-package.mjs';
 import { VesperBrowser, VesperBrowserClient, browserAccessToken, createBrowserServer } from '../src/index.js';
+import { ExtensionStore } from '../src/extensions.js';
 
 test('extension versions are immutable, independently assigned and portable without the original catalog', async () => {
   const root = await mkdtemp(join(tmpdir(),'vesper-extension-'));
@@ -54,5 +55,61 @@ test('extension uploads require authentication, validate ZIPs and retain lease p
     assert.equal((await client.extensions()).length,1);
     assert.ok((await readdir(join(root,'extensions'))).every(name=>/^[a-f0-9]{64}$/.test(name)));
     assert.deepEqual((await client.readProfile(profile.id)).settings.extensions,[]);
+    assert.equal((await fetch(url+'/api/v1/extensions/'+installed.id,{method:'DELETE'})).status,401);
+    assert.deepEqual(await client.removeExtension(installed.id),{id:installed.id,removed:true});
+    assert.deepEqual(await client.extensions(),[]);
+    await assert.rejects(client.removeExtension(installed.id),error=>(error as any).status===404);
+    await assert.rejects(client.removeExtension('../profiles'),/Invalid extension/);
   } finally { await client.close();await new Promise<void>(done=>server.close(()=>done()));await browser.close();await rm(root,{recursive:true,force:true}); }
+});
+
+test('catalog removal protects assigned and trashed profiles, preserves copies and serializes assignment races', async () => {
+  const root=await mkdtemp(join(tmpdir(),'vesper-extension-removal-'));
+  const browser=new VesperBrowser({directory:root});
+  try{
+    const file=join(root,'extension.zip');await writeFile(file,extensionZip());
+    const installed=await browser.installExtension(file);
+    const created=browser.create({extensions:[installed.id]});
+    const blocked=assert.rejects(browser.removeExtension(installed.id),error=>(error as any).status===409);
+    const profile=await created;await blocked;
+    const manifest=join(root,'profiles',profile.id,'manifest.json'),before=await readFile(manifest);
+    await assert.rejects(browser.removeExtension('../profiles'));
+    assert.deepEqual(await readFile(manifest),before);
+    await browser.trash(profile.id);
+    await assert.rejects(browser.removeExtension(installed.id),error=>(error as any).status===409);
+    await browser.update(profile.id,{extensions:[]});
+    const storage=join(root,'profiles',profile.id,'browser','owned-extension-storage.json');
+    await writeFile(storage,'{"visits":7}');
+    await browser.removeExtension(installed.id);
+    assert.deepEqual(await browser.extensions(),[]);
+    assert.equal(await readFile(storage,'utf8'),'{"visits":7}');
+    await browser.update(profile.id,{extensions:[installed.id]});
+    assert.deepEqual(await browser.profileExtensions(profile.id),[installed]);
+    assert.deepEqual(await browser.installExtension(file),installed);
+    await browser.update(profile.id,{extensions:[]});
+    // Deletion winning the queue must reject a new assignment needing a copy.
+    const empty=await browser.create({});
+    const removed=browser.removeExtension(installed.id);
+    const rejected=assert.rejects(browser.update(empty.id,{extensions:[installed.id]}),/ENOENT/);
+    await removed;await rejected;
+    assert.deepEqual((await browser.readProfile(empty.id)).settings.extensions,undefined);
+    // Re-import, then assignment winning the queue must block removal.
+    await browser.installExtension(file);
+    const assigned=browser.update(empty.id,{extensions:[installed.id]});
+    const refused=assert.rejects(browser.removeExtension(installed.id),error=>(error as any).status===409);
+    await assigned;await refused;
+    assert.deepEqual(await browser.profileExtensions(empty.id),[installed]);
+  }finally{await browser.close();await rm(root,{recursive:true,force:true});}
+});
+
+test('catalog removal refuses linked directories and cannot delete outside its catalog', async () => {
+  const root=await mkdtemp(join(tmpdir(),'vesper-extension-links-'));
+  try{
+    const outside=join(root,'outside'),catalog=join(root,'catalog'),id='a'.repeat(64);
+    await mkdir(outside);await mkdir(catalog);await writeFile(join(outside,'keep'),'untouched');
+    await symlink(outside,join(catalog,id),process.platform==='win32'?'junction':'dir');
+    await assert.rejects(new ExtensionStore(catalog).remove(id),/cannot be links/);
+    assert.equal(await readFile(join(outside,'keep'),'utf8'),'untouched');
+    await assert.rejects(new ExtensionStore(catalog).remove('../outside'),/Invalid/);
+  }finally{await rm(root,{recursive:true,force:true});}
 });

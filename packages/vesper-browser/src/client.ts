@@ -68,6 +68,7 @@ export class VesperBrowserClient implements ProfileEngine {
   async fingerprint(id:string){return this.json<Record<string,unknown>>(this.route(id,'fingerprint'));}
   async cookies(id:string,values?:unknown[]){return this.json<unknown[]>(this.route(id,'cookies'),values?'POST':'GET',values?{cookies:values}:undefined);}
   async extensions(){return this.json<import('./extensions.js').BrowserExtension[]>('/api/v1/extensions');}
+  async removeExtension(id:string){if(!/^[a-f0-9]{64}$/.test(id))throw new Error('Invalid extension package ID');return this.json<{id:string;removed:boolean}>('/api/v1/extensions/'+id,'DELETE');}
   async profileExtensions(id:string){return this.json<import('./extensions.js').BrowserExtension[]>(this.route(id,'extensions'));}
   async importExtension(file:string){
     if((await stat(file)).size>40*1024**2)throw new Error('Extension ZIP exceeds 40 MiB');

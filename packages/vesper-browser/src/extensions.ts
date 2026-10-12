@@ -1,6 +1,6 @@
 import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { durableWrite } from './storage.js';
 import { extractEngineZip } from './zip.js';
@@ -76,6 +76,17 @@ export class ExtensionStore {
     const record = await inspect(join(this.path(id),'package'));
     if (record.id !== id) throw new Error('Extension package changed; import a fresh version');
     return record;
+  }
+  async remove(id: string): Promise<void> {
+    const destination = this.path(id), root = resolve(this.directory);
+    if (!resolve(destination).startsWith(root + sep)) throw new Error('Invalid extension catalog directory');
+    for (const directory of [this.directory, destination]) {
+      const entry = await lstat(directory);
+      if (!entry.isDirectory() || entry.isSymbolicLink()) throw new Error('Extension catalog directories cannot be links or special files');
+    }
+    // Only this catalog copy is removed. Profile copies and browser storage
+    // belong to their profiles and are never included in this operation.
+    await rm(destination, { recursive: true });
   }
   async describe(browserDirectory: string, ids: string[]) {
     const records: BrowserExtension[] = [];
