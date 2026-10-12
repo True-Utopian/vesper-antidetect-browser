@@ -44,3 +44,5 @@ End users install compiled browser files, not this source checkout. The current 
 For an independently prepared Linux host, `bash scripts/build-native-kernel.sh <Stage> <checkout> <jobs>` provides the same five stages. It installs no system packages. The Linux host prerequisites remain those in Chromium's pinned Linux build instructions. This helper has not been executed on Linux in the Windows session.
 
 RGBA8 Canvas2D is the initial canvas scope. Float16, WebGL, audio, fonts, media identities, user-agent/client-hint personas and networking policies need their own coherent implementations and measurements. Qualification records these limits explicitly.
+
+A subsequent source review found that the current export hooks also transform GPU-canvas exports, although GPU `readPixels` is outside the implemented scope. The direct qualification now rejects that contradiction. An original [scope correction](proposals/README.md) is prepared and passes its applicability check; it has not been applied to the active build or compiled. The running build and cache remain intact, and this candidate must pass the stronger gate before activation.

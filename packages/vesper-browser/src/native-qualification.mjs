@@ -45,6 +45,25 @@ export function decodeFixturePng(bytes) {
   return [...rgba];
 }
 
+/** The current Canvas2D-only policy must leave GPU read/export behavior coherent. */
+export function assertNativeCanvasScope(value, context) {
+  assert.ok(Array.isArray(value.graphics), `${context}: graphics scope observations are required`);
+  let observed = 0;
+  for (const graphics of value.graphics) {
+    if (!graphics) continue;
+    observed++;
+    const label = `${context}/${graphics.api}`;
+    assert.equal(graphics.error, 0, `${label}: GPU read-out error`);
+    assert.equal(graphics.pixels.length, 16 * 8 * 4, `${label}: RGBA8 fixture size`);
+    assert.deepEqual(graphics.repeat, graphics.pixels, `${label}: GPU reads must not accumulate changes`);
+    const expected = [];
+    for (let y = 7; y >= 0; y--) expected.push(...graphics.pixels.slice(y * 64, (y + 1) * 64));
+    assert.deepEqual(decodeFixturePng(graphics.encoded), expected, `${label}: Canvas2D policy must not change GPU PNG export alone`);
+    if (graphics.dataUrl) assert.deepEqual(decodeFixturePng(Buffer.from(graphics.dataUrl.split(',')[1], 'base64')), expected, `${label}: GPU data URL must agree with readPixels`);
+  }
+  return observed;
+}
+
 
 /** Direct native proof; no CDP environment overrides or JS injections.
  * @param {string} executablePath
@@ -55,7 +74,7 @@ const executable = await realpath(resolve(executablePath));
 assert.ok((await stat(executable)).isFile());
 const temporary = await mkdtemp(join(tmpdir(), 'vesper-kernel-proof-'));
 /** @type {import("./native-kernel.js").NativeKernelReport} */
-const report = { schemaVersion: 1, author: 'true-utopian', at: new Date().toISOString(), state: 'running', implementation: 'native-chromium-patches', executable, executableSha256: '', nativeProof: false, cases: [], checks: [], errors: [], limitations: ['Only original loopback fixtures and RGBA8 Canvas2D surfaces are qualified.', 'WebGL, audio, fonts, media identities, float16 and arbitrary device personas are outside this gate.', 'A pass establishes native enforcement on this binary and fixture, not all-site behavior.'] };
+const report = { schemaVersion: 1, author: 'true-utopian', at: new Date().toISOString(), state: 'running', implementation: 'native-chromium-patches', executable, executableSha256: '', nativeProof: false, cases: [], checks: [], errors: [], limitations: ['Only original loopback fixtures and RGBA8 Canvas2D masking surfaces are qualified.', 'WebGL export/read consistency is checked; WebGL masking, audio, fonts, media identities, float16 and arbitrary device personas remain outside this gate.', 'A pass establishes native enforcement on this binary and fixture, not all-site behavior.'] };
 async function digest(file) { const hash = createHash('sha256'); for await (const data of createReadStream(file)) hash.update(data); return hash.digest('hex'); }
 const hashPixels = pixels => createHash('sha256').update(Buffer.from(pixels)).digest('hex');
 
@@ -72,7 +91,25 @@ async function fixtureSample() {
   if (typeof canvas.convertToBlob === 'function') encoded = [...new Uint8Array(await (await canvas.convertToBlob({ type: 'image/png' })).arrayBuffer())];
   else encoded = [...new Uint8Array(await (await new Promise(done => canvas.toBlob(done, 'image/png'))).arrayBuffer())];
   const dataUrl = typeof canvas.toDataURL === 'function' ? canvas.toDataURL('image/png') : null;
-  return { ...scalars, first, second, crop, encoded, dataUrl };
+  const graphics = [];
+  for (const api of ['webgl', 'webgl2']) {
+    const c = typeof document === 'undefined' ? new OffscreenCanvas(16, 8) : document.createElement('canvas');
+    c.width = 16; c.height = 8;
+    const gl = c.getContext(api, { alpha: false, antialias: false, preserveDrawingBuffer: true });
+    if (!gl) { graphics.push(null); continue; }
+    try {
+      gl.disable(gl.DITHER); gl.clearColor(0.2, 0.4, 0.6, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.SCISSOR_TEST); gl.scissor(3, 2, 5, 3); gl.clearColor(0.8, 0.2, 0.4, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+      const pixels = new Uint8Array(512), repeat = new Uint8Array(512);
+      gl.readPixels(0, 0, 16, 8, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      gl.readPixels(0, 0, 16, 8, gl.RGBA, gl.UNSIGNED_BYTE, repeat);
+      const error = gl.getError();
+      const blob = typeof c.convertToBlob === 'function' ? await c.convertToBlob({type:'image/png'}) : await new Promise(done=>c.toBlob(done,'image/png'));
+      if (!blob) throw Error(`${api}: GPU export failed`);
+      graphics.push({api,pixels:[...pixels],repeat:[...repeat],error,encoded:[...new Uint8Array(await blob.arrayBuffer())],dataUrl:typeof c.toDataURL==='function'?c.toDataURL('image/png'):null});
+    } finally { gl.getExtension('WEBGL_lose_context')?.loseContext(); }
+  }
+  return { ...scalars, first, second, crop, encoded, dataUrl, graphics };
 }
 let port;
 const fixture = createServer((request, response) => {
@@ -150,6 +187,8 @@ async function runCase(name, nativeArgs, expected, full = true) {
     for (const [context, value] of Object.entries(record.contexts)) {
       if (expected) { assert.equal(value.cpu, expected.cpu, `${name}/${context}: native CPU`); assert.equal(value.memory, expected.memory, `${name}/${context}: native device memory`); }
       checkCanvas(value, `${name}/${context}`);
+      const graphicsCount = assertNativeCanvasScope(value, `${name}/${context}`);
+      if (context === 'page') assert.equal(graphicsCount, 2, `${name}: page must expose both owned WebGL scope fixtures`);
       value.canvasSha256 = hashPixels(value.first);
     }
     assert.equal(Number(record.clientHints.deviceMemory), expected?.memory ?? record.contexts.page.memory, `${name}: HTTP client hint must agree with native device memory`);
@@ -170,7 +209,7 @@ try {
   const invalid = await runCase('invalid-fallback', ['--vesper-hardware-concurrency=0', '--vesper-device-memory=3', '--vesper-canvas-seed=invalid'], { cpu: baseline.contexts.page.cpu, memory: baseline.contexts.page.memory }, false);
   assert.equal(invalid.contexts.page.canvasSha256, baseline.contexts.page.canvasSha256, 'Invalid seed must preserve upstream canvas fallback');
   assert.equal(await digest(executable), report.executableSha256, 'Candidate executable changed during proof');
-  report.checks.push('Direct native launch without CDP environment overrides or JS shims', 'First-script CPU/device-memory in pages, OOPIFs, dedicated/shared/service workers, startup MV3 extension worker and popup', 'Deterministic non-accumulating RGBA8 readback and coherent native PNG exports', 'Stable seed across process restart; independent seed differs', 'Malformed native switches fall back to upstream values');
+  report.checks.push('Direct native launch without CDP environment overrides or JS shims', 'First-script CPU/device-memory in pages, OOPIFs, dedicated/shared/service workers, startup MV3 extension worker and popup', 'Deterministic non-accumulating RGBA8 readback and coherent native PNG exports', 'Canvas2D policy does not create WebGL 1/2 pixel/export contradictions', 'Stable seed across process restart; independent seed differs', 'Malformed native switches fall back to upstream values');
   report.state = 'passed'; report.nativeProof = true;
 } catch (error) { report.state = 'failed'; report.errors.push(error.message ?? String(error)); report.diagnosticStack = error.stack; }
 finally {
