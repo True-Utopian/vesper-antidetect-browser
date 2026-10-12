@@ -25,7 +25,7 @@ for (const entry of product === 'browser' ? ['packages/vesper-browser', 'docs', 
 const dependencies = product === 'browser' ? {} : { ...rootPackage.dependencies };
 delete dependencies['@kameleo/local-api-client'];
 dependencies['@true-utopian/vesper-browser'] = 'file:packages/vesper-browser';
-const payloadPackage = { name: '@true-utopian/vesper-workbench', version: rootPackage.version, type: 'module', private: true, author: 'true-utopian', license: 'MIT', exports: rootPackage.exports, dependencies };
+const payloadPackage = { name: `@true-utopian/vesper-${product}`, version: metadata.version, type: 'module', private: true, author: 'true-utopian', license: 'MIT', ...(product === 'workbench' ? { exports: rootPackage.exports } : {}), dependencies };
 await writeFile(join(payload, 'package.json'), JSON.stringify(payloadPackage, null, 2));
 await new Promise((done, reject) => {
   const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: payload, stdio: 'inherit', shell: process.platform === 'win32', windowsHide: true });

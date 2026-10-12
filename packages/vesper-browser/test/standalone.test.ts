@@ -1,3 +1,4 @@
+import { vesperBrowserVersion } from '../src/version.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -20,7 +21,7 @@ test('standalone Browser creates encrypted proxy profiles and restores compatibl
     const imported = await browser.importProfile(archive);
     assert.equal((await browser.readProfile(imported.id)).hasProxy, false);
     assert.equal((await browser.readProfile(imported.id)).settings.locale, 'en-GB');
-    assert.equal((await browser.versions(imported.id)).engineVersion, 'vesper-browser/0.4.2');
+    assert.equal((await browser.versions(imported.id)).engineVersion, `vesper-browser/${vesperBrowserVersion}`);
     const owner = new VesperBrowser({ directory: join(root, 'browser') });
     await assert.rejects(owner.listProfiles(), /Another Vesper Browser process/);
     await owner.close();

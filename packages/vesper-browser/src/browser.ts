@@ -1,4 +1,5 @@
 import {cookieSnapshot,validateCookies} from './cookies.js';
+import { vesperBrowserVersion } from './version.js';
 import { randomUUID } from 'node:crypto';
 import { access, copyFile, mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
@@ -486,7 +487,7 @@ export class VesperBrowser implements ProfileEngine {
     finally { await rm(file, { force: true }); }
   }
   async findByRunId(runId: string) { return (await this.listProfiles()).find(p => p.name === `run-${runId}`); }
-  async versions(id: string) { const profile = await this.readProfile(id); return { engineVersion: 'vesper-browser/0.4.2', kernelVersion: profile.browserVersion ?? 'unknown' }; }
+  async versions(id: string) { const profile = await this.readProfile(id); return { engineVersion: `vesper-browser/${vesperBrowserVersion}`, kernelVersion: profile.browserVersion ?? 'unknown' }; }
   async close() {
     if (this.closed) return;
     await this.starts.catch(() => {});

@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { vesperBrowserVersion } from './version.js';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { mkdir, mkdtemp, open, readFile, rm, stat } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -95,7 +96,7 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
         if (request.headers.origin) throw error(403, 'Desktop shutdown is available only through the native manager');
         json(response, 202, { stopping: true }); setImmediate(() => void options.shutdown!()); return;
       }
-      if (url.pathname === '/api/capabilities' && request.method === 'GET') { json(response, 200, { product: 'Vesper Browser', author: 'true-utopian', version: '0.4.2', apiVersion, capabilities }); return; }
+      if (url.pathname === '/api/capabilities' && request.method === 'GET') { json(response, 200, { product: 'Vesper Browser', author: 'true-utopian', version: vesperBrowserVersion, apiVersion, capabilities }); return; }
       if (url.pathname === '/api/session' && request.method === 'GET') { json(response, 200, { authenticated: true }); return; }
       if (url.pathname === '/api/openapi.json' && request.method === 'GET') { json(response, 200, browserOpenApi); return; }
       if (url.pathname === '/api/environment/capabilities' && request.method === 'GET') { json(response, 200, environmentCapabilities); return; }

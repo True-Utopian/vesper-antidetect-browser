@@ -227,7 +227,7 @@ new file mode 100644
 +    auto row = bytes.subspan(static_cast<size_t>(y) * readback.rowBytes(),
 +                             readback.info().minRowBytes());
 +    for (int x = 0; x < readback.width(); ++x) {
-+      auto pixel = row.subspan(static_cast<size_t>(x) * 4, 4);
++      auto pixel = row.subspan(static_cast<size_t>(x) * size_t{4}, size_t{4});
 +      if (pixel[3] == 0) {
 +        continue;
 +      }

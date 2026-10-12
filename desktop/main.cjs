@@ -78,7 +78,7 @@ async function start() {
     });
     origin = workbench.origin;
   } else origin = browserOrigin;
-  window = new BrowserWindow({ width: 1380, height: 860, minWidth: 860, minHeight: 560, title: manifest.name, backgroundColor: product === 'browser' ? '#181a1e' : '#edf0f5', icon: join(__dirname, 'icon.png'), webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, preload: join(__dirname,'preload.cjs') } });
+  window = new BrowserWindow({ width: 1380, height: 860, minWidth: 860, minHeight: 560, title: manifest.name, backgroundColor: '#181a20', icon: join(__dirname, 'icon.png'), webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, preload: join(__dirname,'preload.cjs') } });
   if(product==='browser')pluginHost=require('./workbench-host.cjs').createWorkbenchHost({base,payload,desktop:__dirname,window:()=>window,WebContentsView,dialog,api,tokenAt,spawnService,localDownloads,onService:value=>{workbench=value;}});
   const tokenFile = join(base, product, 'admin-token');
   const token = await tokenAt(tokenFile);

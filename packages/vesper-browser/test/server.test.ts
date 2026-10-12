@@ -20,6 +20,9 @@ test('independent Browser manager authenticates, rejects foreign origins and bou
     const page = await fetch(origin); assert.equal(page.status, 200);
     assert.match(await page.text(), /Vesper Browser by true-utopian/);
     assert.match(page.headers.get('content-security-policy')!, /frame-ancestors 'none'/);
+    const capabilities = await (await fetch(`${origin}/api/v1/capabilities`, { headers })).json();
+    const metadata = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+    assert.equal(capabilities.version, metadata.version, 'API release identity must match the installed package');
     assert.equal((await fetch(`${origin}/api/profiles`)).status, 401);
     assert.equal((await fetch(`${origin}/api/profiles`, { headers: { authorization: `Bearer ${token}`, origin: 'https://foreign.example' } })).status, 403);
     assert.equal((await fetch(`${origin}/api/profiles`, { method: 'POST', headers: { ...headers, 'sec-fetch-site': 'cross-site' }, body: '{}' })).status, 403);
@@ -29,9 +32,10 @@ test('independent Browser manager authenticates, rejects foreign origins and bou
     const creation = await fetch(`${origin}/api/profiles`, { method: 'POST', headers, body: JSON.stringify({ name: 'Owned fixture', locale: 'en-GB' }) });
     assert.equal(creation.status, 201);
     const { id } = await creation.json() as { id: string };
+    assert.equal((await browser.versions(id)).engineVersion, `vesper-browser/${metadata.version}`);
     await client.ready(); await client.install(id);
     assert.equal((await client.readProfile(id)).name, 'Owned fixture');
-    assert.equal((await client.versions(id)).engineVersion, 'vesper-browser/0.4.2');
+    assert.equal((await client.versions(id)).engineVersion, `vesper-browser/${metadata.version}`);
     assert.equal((await fetch(`${origin}/api/profiles/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ name: 'Edited fixture' }) })).status, 200);
     const profiles = await (await fetch(`${origin}/api/profiles`, { headers })).json() as { name: string }[];
     assert.equal(profiles[0]?.name, 'Edited fixture');

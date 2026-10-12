@@ -37,6 +37,10 @@ Vesper profiles accept desktop `environment.deviceMemory` buckets 2, 4, 8, 16 an
 
 The Windows build is being brought up locally. The original C++ policy is intended to be portable to Linux; a Linux kernel binary must pass a separate native Linux build and the same browser gate. Existing Linux desktop packages do not imply a Linux kernel build has been verified.
 
+The 12 October build exposed a checked-span type mismatch in canvas readback. The original patch now passes explicit `size_t` lengths, and the affected translation unit compiles successfully with Chromium's pinned compiler and flags. The complete browser and test targets are still compiling; this object-file check does not qualify the kernel.
+
+End users install compiled browser files, not this source checkout. The current local Windows Browser 0.4.3 full installer is approximately 264 MB and includes upstream Chromium. The large Chromium development checkout is needed only to build the original native kernel. A qualified custom runtime will be admitted separately after its native tests and copied-runtime checks pass.
+
 For an independently prepared Linux host, `bash scripts/build-native-kernel.sh <Stage> <checkout> <jobs>` provides the same five stages. It installs no system packages. The Linux host prerequisites remain those in Chromium's pinned Linux build instructions. This helper has not been executed on Linux in the Windows session.
 
 RGBA8 Canvas2D is the initial canvas scope. Float16, WebGL, audio, fonts, media identities, user-agent/client-hint personas and networking policies need their own coherent implementations and measurements. Qualification records these limits explicitly.
