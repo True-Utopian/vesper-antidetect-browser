@@ -10,6 +10,7 @@ export type {
   LocalEngineOptions, LocalProfileSettings, LocalProfile,
 } from './browser.js';
 export type { ProfileEngine, ProxyChoice } from './types.js';
+export type { SavedProxy } from './proxies.js';
 export { AdmissionJournal, leaseKey } from './contract.js';
 export { acquireProcessLock } from './process-lock.js';
 export { environmentCapabilities, validateEnvironment } from './persona.js';

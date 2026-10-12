@@ -102,6 +102,16 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
       if (url.pathname === '/api/environment/capabilities' && request.method === 'GET') { json(response, 200, environmentCapabilities); return; }
       if (url.pathname === '/api/fingerprint/capabilities' && request.method === 'GET') { json(response, 200, fingerprintCapabilities); return; }
       if (url.pathname === '/api/engine/versions' && request.method === 'GET') { json(response,200,await browser.engineVersions()); return; }
+      if (url.pathname === '/api/proxies') {
+        if (request.method === 'GET') { json(response,200,await browser.proxies()); return; }
+        if (request.method === 'POST') { json(response,201,await browser.saveProxy(await body(request))); return; }
+      }
+      const savedProxy = new RegExp(`^/api/proxies/(${idPattern})$`).exec(url.pathname);
+      if (savedProxy) {
+        if (request.method === 'PATCH') { json(response,200,await browser.saveProxy(await body(request), savedProxy[1]!)); return; }
+        if (request.method === 'DELETE') { const data = await body(request); json(response,200,await browser.removeProxy(savedProxy[1]!,data.revision)); return; }
+        throw error(405,'Method not allowed.');
+      }
       if(url.pathname==='/api/extensions' && request.method==='GET'){json(response,200,await browser.extensions());return;}
       const extension = /^\/api\/extensions\/([a-f0-9]{64})$/.exec(url.pathname);
       if(extension && request.method==='DELETE'){json(response,200,await browser.removeExtension(extension[1]!));return;}
@@ -181,7 +191,7 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
         } finally { await rm(temporary, { recursive: true, force: true }); }
         return;
       }
-      const match = new RegExp(`^/api/profiles/(${idPattern})(?:/(start|stop|duplicate|install|connection|versions|archive|lease|interrupt|trash|restore|environment|cookies|fingerprint|extensions))?$`).exec(url.pathname);
+      const match = new RegExp(`^/api/profiles/(${idPattern})(?:/(start|stop|duplicate|install|connection|versions|archive|lease|interrupt|trash|restore|environment|cookies|fingerprint|extensions|proxy))?$`).exec(url.pathname);
       if (!match) throw error(404, 'Profile route not found.');
       const id = match[1]!, action = match[2];
       if (action === 'interrupt' && request.method === 'POST') {
@@ -196,6 +206,12 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
         json(response, 200, await contract.acquire(id, String(settings.runId ?? ''))); return;
       }
       if (!['GET', 'HEAD'].includes(request.method ?? '') || ['connection', 'archive','cookies','environment'].includes(action ?? '')) contract.assertAccess(id, request.headers['x-vesper-lease'] as string | undefined);
+      if (action === 'proxy' && request.method === 'POST') {
+        const data = await body(request);
+        if (Object.keys(data).some(k => !['proxyId','revision'].includes(k)) || typeof data.proxyId !== 'string') throw error(400,'Choose a saved proxy and its current revision');
+        const result = await browser.assignProxy(id,data.proxyId,data.revision);
+        await contract.event('profile.proxy-assigned',id); json(response,200,result); return;
+      }
       if (action === 'cookies' && request.method === 'POST') { const data = await body(request); if(!Array.isArray(data.cookies)) throw error(400,'Supply a cookies array'); json(response,200,await browser.cookies(id,data.cookies)); return; }
       if (action === 'lease' && request.method === 'DELETE') {
         if ((await browser.listProfiles()).find(profile => profile.id === id)?.state === 'running') throw conflict('Stop the profile before releasing its lease');

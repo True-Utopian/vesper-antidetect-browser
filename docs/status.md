@@ -54,7 +54,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Credential vault | verified | [Evidence](../docs/validation.md) |
 | Proxy editing per profile | verified | [Evidence](../docs/validation.md) |
 | Owned outage navigation | source tested | [Evidence](../docs/proxies.md) |
-| Browser inventory editor | planned | [Evidence](../docs/research/completion-gates.md) |
+| Browser inventory editor | source tested | [Evidence](../docs/proxy-inventory.md) |
 | Rotation workflow | planned | [Evidence](../docs/research/completion-gates.md) |
 | Whole-browser leak capture | planned | [Evidence](../docs/research/completion-gates.md) |
 
