@@ -301,3 +301,38 @@ Actual-installation evidence: `test-results/native-engine/installed-pair-qualifi
 backup/manifest. Public GitHub CI passed Windows and Linux source checks plus
 the external PostgreSQL integration job. These Linux source checks do not
 qualify the Linux desktop packages or custom native kernel.
+
+### Installed identity update and runtime follow-up — 12 October
+
+Browser **0.4.3** and the signed Workbench **0.5.5** add-on now run in the
+actual per-user installation. The guarded upgrade verified a full backup of
+43,054 files (555,541,950 bytes), inspected a disposable copy of the coordinator
+database, checked idle processes and leases, and preserved every original
+private file except the intended add-on registry change.
+
+Extended installed qualification passed real Browser-owned automation,
+extension startup/content execution, retained extension storage through an
+independent archive import, London DST calendar previews and schedule
+create/pause/remove. The archive measured 68,340 bytes with SHA-256
+`38e726e7e4d22bb578fc1aaf81536b7f78e1be8e7bae3e7b914d52e213bd7476`.
+The original profile baseline remained unchanged; all owned browsers stopped
+and all leases were released. The Python SDK separately passed calendar and
+schedule lifecycle checks against Workbench 0.5.5. The native desktop window
+shows the original moth emblem, compact profile table and embedded Workbench.
+
+The checked-span error in the original native canvas patch was corrected with
+explicit `size_t` lengths. Its previously failed translation unit compiled
+successfully using the exact pinned Chromium compiler command. The full
+browser and native-test targets are still compiling. Their tests, copied
+runtime and actual native activation have **not** passed yet. Installed stock
+Chromium still exposes CPU 12 in the extension's first startup script while
+the later content script sees CPU 4; the stock native candidate remains rejected.
+
+One exact-head Windows CI run aborted in V8's WebAssembly code lifecycle; the
+other passed. Workbench now requires the documented [Node.js 26 source
+baseline](runtime-baseline.md). Its full local suite passed 149 tests, zero
+failures and one optional external PostgreSQL skip. Three additional fresh
+Node.js 26.11.1 coordinator-test processes each passed 14 tests with the one
+external PostgreSQL skip; repeated executions are not counted as new features.
+Browser's separate source repository passed its Windows/Linux CI after the
+0.4.3 update and original compiler fix.

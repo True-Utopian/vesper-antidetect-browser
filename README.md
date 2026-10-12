@@ -12,7 +12,7 @@
 
 <sub>Green means a named acceptance check passed; grey means pending. Squares visualize proportions, not additional checks. Percentages do not measure vendor parity or detection resistance. See the [evidence-linked checklist](docs/status.md).</sub>
 
-The installed Windows Browser 0.4.2 and Workbench 0.5.4 have passed profile lifecycle, extension storage, verified export/import, calendar/DST, SDK and real automation checks. **The custom kernel is still compiling: native tests and installed activation are pending.** WebGL/WebGPU, audio/fonts, coherent personas, additional engines and real Linux execution remain unfinished. [Measured validation](docs/validation.md) · [Completion gates](docs/research/completion-gates.md).
+The installed Windows Browser 0.4.3 and Workbench 0.5.5 have passed profile lifecycle, extension storage, verified export/import, calendar/DST, SDK and real automation checks. **The custom kernel is still compiling: native tests and installed activation are pending.** WebGL/WebGPU, audio/fonts, coherent personas, additional engines and real Linux execution remain unfinished. [Measured validation](docs/validation.md) · [Completion gates](docs/research/completion-gates.md).
 
 ## Use Vesper
 
