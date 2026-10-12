@@ -1,10 +1,33 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VesperBrowser } from '../src/browser.js';
-import { nativeProfileArguments } from '../src/native-kernel.js';
+import { nativeProfileArguments, nativeRuntimeInventory, verifyNativeRuntime } from '../src/native-kernel.js';
+
+test('native receipts bind Linux component libraries and reject changed, missing or escaped components', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'vesper-linux-runtime-'));
+  try {
+    const executable = join(root, 'chrome'); await writeFile(executable, 'owned launcher');
+    const library = join(root, 'libblink.so'); await writeFile(library, 'owned component');
+    await writeFile(join(root, 'libEGL.so.1'), 'owned versioned component');
+    const receipt = await nativeRuntimeInventory(executable);
+    assert.deepEqual(receipt.map(file => file.path), ['chrome', 'libEGL.so.1', 'libblink.so']);
+    await verifyNativeRuntime(executable, receipt);
+    await writeFile(library, 'changed component');
+    await assert.rejects(verifyNativeRuntime(executable, receipt), /runtime changed/);
+    await rm(library);
+    await assert.rejects(verifyNativeRuntime(executable, receipt), /runtime changed/);
+    // Linux soname symlinks must be hashed and remain inside the kernel directory.
+    if (process.platform !== 'win32') {
+      await symlink('libEGL.so.1', library);
+      assert.ok((await nativeRuntimeInventory(executable)).some(file => file.path === 'libblink.so'));
+      await rm(library); await symlink(process.execPath, library);
+      await assert.rejects(nativeRuntimeInventory(executable), /outside the kernel/);
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 test('native identity survives archives and restart, while fresh profiles receive independent seeds', async () => {
   const root = await mkdtemp(join(tmpdir(), 'vesper-native-identity-'));

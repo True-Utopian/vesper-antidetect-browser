@@ -10,11 +10,12 @@ Vesper Browser 0.4.6 and Workbench 0.5.8 expose three optional native privacy co
 
 ## Passing checks
 
-- Full source suite: 177 passing tests (38 Browser, 139 Workbench/root), zero failures and one optional external PostgreSQL test skipped.
+- Latest full source suite: 182 passing tests (39 Browser, 143 Workbench/root), zero failures and one optional external PostgreSQL test skipped. New regressions bind Linux shared libraries to native receipts, distinguish conditional input validation from schemas that need JSON, and retain relative module dependencies in immutable asset revisions.
 - Standalone native C++ policy: 4,141 assertions pass. These cover sample stability, independent seeds/channels, chunk offsets, special floats, bounded changes and font-family parsing; they are not 4,141 browser features.
 - Four modified Chromium translation units compile in isolation with the pinned native toolchain: WebGL extension discovery, offline audio completion, font cache and Local Font Access.
 - Browser API tests check policy validation, persisted identity, restart/archive behavior and rejection without the required native receipt. Workbench's Inspect schema and profile mapping forward the same settings.
 - The expanded first-script fixture runs on the bundled stock browser across eight contexts. Native admission correctly rejects that stock browser. This proves fixture execution, not native masking.
+- Browser 0.4.6 and the signed Workbench 0.5.8 add-on passed 22 packaged Windows checks: six desktop/control checks, nine extended API checks and seven saved-proxy checks. This includes saving the three native settings and refusing an unqualified kernel. The production dependency audit recorded zero vulnerabilities.
 
 ## Pending release checks
 
@@ -22,4 +23,8 @@ The full native browser is still compiling. The surface patch is queued behind t
 
 Native acceptance requires unit tests, direct runtime checks, copied-runtime checks and installed Browser–Workbench integration. The runtime checks compare WebGL discovery/error behavior, offline sample reads/copies/events/restarts and independent seeds, and font metrics/local discovery against an upstream baseline. Each receipt must name the specific passing surface policies before those settings can launch.
 
-The new desktop packages and installed controls remain pending until their own qualification reports pass. Linux package structure does not prove execution on Linux. No complete vendor masking parity or detection-avoidance claim is made.
+The actual Browser 0.4.6 / Workbench 0.5.8 upgrade passed nine extended API checks, seven saved-proxy checks, Python scheduling and three native-input/refusal checks. Direct Windows review confirmed the moth mark, fitted profile table, embedded Workbench and saved proxy run, and the proxy editor. This proves installed input forwarding and refusal of an unqualified kernel, not enforcement by a native binary. The installed Inspect dialog still falls back to JSON for its conditional schema; the source correction requires separate packaging and installed acceptance.
+
+The source Inspect form and its form/JSON round-trip passed a separate browser UI check. The new Linux inventory verifier passed three checks on Ubuntu, including shared-library symlinks, tampered/missing libraries and outside-directory rejection. These are not native enforcement or installed-package proofs.
+
+The release audit requires all nine native fixture cases and the three surface capabilities in direct and copied receipts, plus those capabilities in installed integration; an older scalar/canvas receipt cannot complete these gates. PowerShell UTF-8 receipts with a byte-order mark are accepted without ignoring their recorded state. An isolated Ubuntu build account has passed 177 public-source tests and 4,141 standalone assertions and fetched the pinned Chromium source. Linux runtime, sandbox, copied-runtime and installer acceptance remain pending. No complete vendor masking parity or detection-avoidance claim is made.
