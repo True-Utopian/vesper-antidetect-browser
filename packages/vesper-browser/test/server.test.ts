@@ -1,0 +1,55 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { VesperBrowser, VesperBrowserClient, browserAccessToken, createBrowserServer } from '../src/index.js';
+
+test('independent Browser manager authenticates, rejects foreign origins and bounds settings', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'vesper-manager-test-'));
+  const browser = new VesperBrowser({ directory, executablePath: process.execPath });
+  const token = await browserAccessToken(directory);
+  assert.equal(await browserAccessToken(directory), token);
+  const server = await createBrowserServer(browser, token);
+  await new Promise<void>(done => server.listen(0, '127.0.0.1', done));
+  const address = server.address(); assert.ok(address && typeof address !== 'string');
+  const origin = `http://127.0.0.1:${address.port}`;
+  const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json', origin };
+  const client = new VesperBrowserClient({ url: origin, tokenFile: join(directory, 'admin-token') });
+  try {
+    const page = await fetch(origin); assert.equal(page.status, 200);
+    assert.match(await page.text(), /Vesper Browser by true-utopian/);
+    assert.match(page.headers.get('content-security-policy')!, /frame-ancestors 'none'/);
+    assert.equal((await fetch(`${origin}/api/profiles`)).status, 401);
+    assert.equal((await fetch(`${origin}/api/profiles`, { headers: { authorization: `Bearer ${token}`, origin: 'https://foreign.example' } })).status, 403);
+    assert.equal((await fetch(`${origin}/api/profiles`, { method: 'POST', headers: { ...headers, 'sec-fetch-site': 'cross-site' }, body: '{}' })).status, 403);
+    assert.equal((await fetch(`${origin}/api/profiles`, { method: 'POST', headers, body: JSON.stringify({ name: 'x'.repeat(70000) }) })).status, 413);
+    assert.equal((await fetch(`${origin}/api/profiles`, { method: 'POST', headers, body: '[]' })).status, 400);
+    assert.equal((await fetch(`${origin}/api/profiles`, { method: 'POST', headers, body: JSON.stringify({ fingerprintId: 'unimplemented' }) })).status, 400);
+    const creation = await fetch(`${origin}/api/profiles`, { method: 'POST', headers, body: JSON.stringify({ name: 'Owned fixture', locale: 'en-GB' }) });
+    assert.equal(creation.status, 201);
+    const { id } = await creation.json() as { id: string };
+    await client.ready(); await client.install(id);
+    assert.equal((await client.readProfile(id)).name, 'Owned fixture');
+    assert.equal((await client.versions(id)).engineVersion, 'vesper-browser/0.4.2');
+    assert.equal((await fetch(`${origin}/api/profiles/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ name: 'Edited fixture' }) })).status, 200);
+    const profiles = await (await fetch(`${origin}/api/profiles`, { headers })).json() as { name: string }[];
+    assert.equal(profiles[0]?.name, 'Edited fixture');
+    assert.equal((await fetch(`${origin}/api/profiles/${id}/duplicate`, { method: 'POST', headers: { authorization: `Bearer ${token}`, origin } })).status, 201);
+    assert.equal((await fetch(`${origin}/api/profiles/not-a-uuid/start`, { method: 'POST', headers })).status, 404);
+    assert.equal((await fetch(`${origin}/api/profiles/${id}/stop`, { method: 'POST', headers, body: '{}' })).status, 400);
+    assert.equal((await fetch(`${origin}/../src/storage.ts`, { headers })).status, 404);
+    const archive = join(directory, 'remote.workbench.tgz');
+    await client.export(id, archive);
+    const bytes = await readFile(archive);
+    await assert.rejects(client.export(id, archive), { code: 'EEXIST' });
+    assert.deepEqual(await readFile(archive), bytes);
+    const imported = await client.importProfile(archive);
+    assert.equal((await client.readProfile(imported.id)).hasProxy, false);
+    await assert.rejects(client.importProfile(archive, { name: 'Unsupported overrides' }), /overrides/);
+    await client.close(); assert.equal((await client.listProfiles()).length, 3);
+    assert.throws(() => new VesperBrowserClient({ url: 'https://example.com:3181', tokenFile: 'token' }), /127.0.0.1/);
+    assert.throws(() => new VesperBrowserClient({ url: 'http://127.0.0.1:3181/path', tokenFile: 'token' }), /127.0.0.1/);
+    await assert.rejects(client.stop('../invalid'), /Invalid Vesper profile ID/);
+  } finally { await new Promise<void>((done, reject) => server.close(error => error ? reject(error) : done())); await browser.close(); await rm(directory, { recursive: true, force: true }); }
+});

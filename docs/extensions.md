@@ -1,0 +1,19 @@
+# Local browser extensions
+
+Original implementation by **true-utopian**. Import and assign trusted local packages through Browser; Workbench can use the same selection.
+
+Import a Manifest V3 ZIP under **Extensions**. `manifest.json` must be at its root. Vesper displays the name, version, required/optional permissions and host/content-script matches. Select the package in a stopped profile's **Extensions** tab, then save. Each profile retains its own package copy and Chromium extension storage. Unassigning disables the package on the next launch; it retains data for reassignment.
+
+The authenticated Browser API provides `GET /api/v1/extensions`, `POST /api/v1/extensions/import` with `application/zip`, and `GET /api/v1/profiles/{id}/extensions`. Set profile `extensions` to an array of package IDs through the existing create/edit API. Leases still prevent an unrelated client from editing an automation-owned profile. TypeScript and Python clients expose catalog/import/profile methods; Workbench Inspect accepts extension package IDs.
+
+Imports are limited to a 40 MiB ZIP, 128 MiB extracted files and 10,000 regular files. Packages cannot contain links or escaping paths. Content hashes identify immutable versions; assignment, launch and export verify the copied contents. Archives retain assigned packages and can import into another local store without the original catalog.
+
+For packages without their own manifest public key, Vesper adds a deterministic per-package public key to keep the browser's extension ID stable across profile paths and archive import. This is an identity, not a signature or trust assertion. Changing a keyless package creates a new extension identity. Automatic version-to-version storage migration and catalog removal are unfinished. The fixture tests cover Chromium and an original MV3 extension, not every third-party package or Brave build.
+
+On Windows, deeply nested desktop data directories can exceed Chromium's legacy extension-loader and extension-storage path limits. Browser 0.4.2 supplies short, private process-only package copies and a short junction to the existing profile directory. It verifies the launch copies against their content hashes. The persistent package/profile data stays in its original location; launch paths remain available until Chromium exits and flushes storage. They are then removed without deleting the original data. The owned qualification loaded an extension from a 294-character manifest path and retained storage across restart. A forced service/OS exit can leave temporary launch directories for later cleanup.
+
+An extension worker restored at browser startup may execute before the CDP environment controller connects. The packaged Windows qualification measured page/content-script CPU 4 while that startup worker measured the native PC value 12. The policy report records such targets under `alreadyRunning`; its before-script guarantee covers new targets after controller installation. This feature does not establish native fingerprint-engine coverage.
+
+Run `npm run build` and `node scripts/qualify-local-extensions.mjs` for the owned loopback-only restart/archive/Workbench qualification. Its report is saved under `test-results/extensions`.
+
+Run `node scripts/qualify-extension-paths.mjs --executable /path/to/chrome` for the long-path/restart fixture. `scripts/qualify-installed-pair.mjs --extended --data-root /path/to/running-desktop-data` checks the installed pair, calendar client, extension-enabled automation and saved-profile import. It requires idle profiles and creates only owned qualification fixtures.

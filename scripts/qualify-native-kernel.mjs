@@ -1,0 +1,11 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve,join} from 'node:path';
+import {qualifyNativeKernel} from '../packages/vesper-browser/dist/native-qualification.mjs';
+export {decodeFixturePng} from '../packages/vesper-browser/dist/native-qualification.mjs';
+const index=process.argv.indexOf('--executable');
+if(index<0||!process.argv[index+1])throw new Error('Usage: npm run build, then node scripts/qualify-native-kernel.mjs --executable <compiled chrome.exe>');
+const output=resolve('test-results/native-kernel');await mkdir(output,{recursive:true});
+const report=await qualifyNativeKernel(process.argv[index+1]);
+await writeFile(join(output,'qualification.json'),JSON.stringify(report,null,2));
+console.log(JSON.stringify({state:report.state,nativeProof:report.nativeProof,cases:report.cases.length,errors:report.errors,report:join(output,'qualification.json')}));
+if(report.state!=='passed')process.exitCode=1;

@@ -1,0 +1,39 @@
+{
+  "name": "@true-utopian/vesper-antidetect-browser",
+  "version": "0.4.2",
+  "description": "Vesper Browser by true-utopian: independent local profiles, native kernel and optional Workbench add-on.",
+  "author": "true-utopian",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/True-Utopian/vesper-antidetect-browser.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/vesper-browser"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @true-utopian/vesper-browser",
+    "typecheck": "npm run typecheck --workspace @true-utopian/vesper-browser",
+    "test": "npm test --workspace @true-utopian/vesper-browser",
+    "check": "npm run typecheck && npm test && npm run build && node scripts/readme-status.mjs --check",
+    "desktop:browser": "npm run build && electron desktop/main.cjs",
+    "browser:serve": "node packages/vesper-browser/dist/cli.js serve",
+    "browser:token": "node packages/vesper-browser/dist/cli.js token",
+    "package:windows": "npm run build && node scripts/desktop-build.mjs browser win32",
+    "package:linux": "npm run build && node scripts/desktop-build.mjs browser linux --dir"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "tar": "7.5.22",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3",
+    "@types/node": "^24.0.0"
+  }
+}

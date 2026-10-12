@@ -1,0 +1,19 @@
+# Dolphin Anty: scoped static research
+
+By **true-utopian**, 10 October 2026. This research informs independently written Vesper requirements. Vendor artifacts and source-bearing analysis remain private and are excluded from release source.
+
+The official public download site's JavaScript supplied a list of download mirrors and a Windows installer path. The public installer was downloaded to private research storage and inspected/extracted as NSIS with the existing 7-Zip tool. It was not installed or executed. Its embedded `app-64.7z` contains an Electron executable and `resources/app.asar`. The package identifies `dolphin_anty` version `2026.274.13993`, entry `js_dist/background.js`.
+
+| Evidence | Identity / boundary | Limit |
+| --- | --- | --- |
+| Public website REA `ev_9f5743e112dcb82c75368e93ba413f2e487a13286c4173aaa75864b53e7fb535` | Inert website inventory and source graph | Website is not desktop or browser-kernel evidence |
+| Shipped ASAR REA `ev_5beb188cd108d8bd5b3e6d581de05084b3c5ea541097a0aa3df8d0a87253f899` | ASAR SHA-256 `74167cef583eb91d284a9d4001cba367b8f3585a2c19a2562baea86059d16d54`; 193 application graph nodes | Semantic projection truncated; application registration/reachability remains unverified |
+| Focused shell-member REA `ev_155eff2243686f239e44be4c7bc2195d4dcaff1f0a71c4b9be3c539e8d8d032c` | Exact `background.js` member SHA-256 `03f5c7d030df6b636652adab365ea5c8fb19ef8f3c2e680c3c3f69e8a95ac466` | Module contains bundled dependencies; 20,000-node semantic ceiling still truncates coverage |
+
+Supplemental source-range inspection found literal shell registrations for close/external-link/support-window controls and a `downloadLocalApi` retry handler. A focused AST extraction retains exact original byte ranges and digests for that shell boundary, allowing a smaller REA analysis without treating omitted dependencies as resolved. The initial whole-application semantic seeds for `startProfile` and the standalone `--remote-debugging-port` literal matched no retained nodes; that result does not prove those features are absent. The browser engine and separate local API are not covered by this installer-shell analysis.
+
+The current requirements inventory additionally uses official [profile tools](https://docs.dolphin-anty.com/en/working-with-profiles), [profile creation/editing](https://docs.dolphin-anty.com/en/working-with-profiles/creating-and-editing-profiles-in-dolphin-anty), [script builder](https://docs.dolphin-anty.com/en/script-builder/script-builder-dolphin-anty), and [fingerprint settings](https://docs.dolphin-anty.com/en/working-with-fingerprints/digital-fingerprint-and-profile-settings-in-dolphin-anty). These establish advertised workflows, not local proof of their implementations. Vesper's templates, metadata, reversible trash, cookies, flow editing, scheduling, and engine controls are original implementations against their own contracts.
+
+Unresolved: native browser policies, coherent fingerprint generation, routing under every target type, extension lifecycle, vendor performance, dynamic local API dispatch, and runtime storage. No full reverse-engineering or superiority claim is made.
+
+The bounded shell projection `ev_83aaf6c122dd6c2b71e32b138dfe74147e120e71591a85d88278c4ab694290f4` contains 2,502 semantic nodes without truncation, with omitted external bindings unresolved. REA's application feature trace `ev_b5d17a1a5dd44218ca3f185da971ab6351b05a6483c21dd2a91570934f318300` seeded the exact `downloadLocalApi` IPC channel and matched its static main-process listener. This corroborates a shell/local-API boundary; it does not demonstrate invocation, downloaded payload identity or browser behavior. A semantic value search for that channel matched no nodes because the literal is represented in the application graph, illustrating why a negative search in one projection is insufficient.

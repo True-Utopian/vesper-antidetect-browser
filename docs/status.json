@@ -1,0 +1,685 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-10-12",
+  "scope": "Named acceptance checks for the current local Vesper roadmap. Counts are not a percentage of vendor features, total engineering effort or detection resistance.",
+  "definitions": {
+    "verified": "Implemented and verified in the installed desktop pair.",
+    "source_tested": "Implemented and tested locally; desktop release or broader qualification is pending.",
+    "in_progress": "Active implementation or qualification, not yet accepted.",
+    "planned": "Required work without an accepted implementation."
+  },
+  "groups": [
+    {
+      "product": "Browser",
+      "name": "Profiles",
+      "checks": [
+        {
+          "id": "browser-create",
+          "name": "Create",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-edit-stopped-profiles",
+          "name": "Edit stopped profiles",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-open-and-stop",
+          "name": "Open and stop",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-persistent-storage",
+          "name": "Persistent storage",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-independent-duplicate",
+          "name": "Independent duplicate",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-archive-import-export",
+          "name": "Archive import/export",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-folders",
+          "name": "Folders",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-tags-and-notes",
+          "name": "Tags and notes",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-favorites-and-search",
+          "name": "Favorites and search",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-trash-and-restore",
+          "name": "Trash and restore",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-revision-conflicts",
+          "name": "Revision conflicts",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-run-ownership-leases",
+          "name": "Run ownership leases",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-detached-service-ownership",
+          "name": "Detached service ownership",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        }
+      ]
+    },
+    {
+      "product": "Browser",
+      "name": "Identity and rendering",
+      "checks": [
+        {
+          "id": "browser-real-chromium",
+          "name": "Real Chromium",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-locale-and-timezone",
+          "name": "Locale and timezone",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-new-target-policy",
+          "name": "New-target policy",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-page-cpu-policy",
+          "name": "Page CPU policy",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-native-cpu-getter",
+          "name": "Native CPU getter",
+          "state": "in_progress",
+          "evidence": "native/chromium/README.md"
+        },
+        {
+          "id": "browser-native-memory-client-hint",
+          "name": "Native memory/client hint",
+          "state": "in_progress",
+          "evidence": "native/chromium/README.md"
+        },
+        {
+          "id": "browser-native-rgba8-canvas",
+          "name": "Native RGBA8 canvas",
+          "state": "in_progress",
+          "evidence": "native/chromium/README.md"
+        },
+        {
+          "id": "browser-persisted-native-seed",
+          "name": "Persisted native seed",
+          "state": "source_tested",
+          "evidence": "native/chromium/README.md"
+        },
+        {
+          "id": "browser-coherent-browser-personas",
+          "name": "Coherent browser personas",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-webgl-identity",
+          "name": "WebGL identity",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-webgpu-identity",
+          "name": "WebGPU identity",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-audio-surfaces",
+          "name": "Audio surfaces",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-font-exposure",
+          "name": "Font exposure",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-media-devices",
+          "name": "Media devices",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-headed-screen-consistency",
+          "name": "Headed screen consistency",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-custom-binary-qualification",
+          "name": "Custom binary qualification",
+          "state": "in_progress",
+          "evidence": "native/chromium/README.md"
+        }
+      ]
+    },
+    {
+      "product": "Browser",
+      "name": "Connections",
+      "checks": [
+        {
+          "id": "browser-http-proxy",
+          "name": "HTTP proxy",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-socks5-proxy",
+          "name": "SOCKS5 proxy",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-credential-vault",
+          "name": "Credential vault",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-proxy-editing-per-profile",
+          "name": "Proxy editing per profile",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-owned-outage-navigation",
+          "name": "Owned outage navigation",
+          "state": "source_tested",
+          "evidence": "docs/proxies.md"
+        },
+        {
+          "id": "browser-browser-inventory-editor",
+          "name": "Browser inventory editor",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-rotation-workflow",
+          "name": "Rotation workflow",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-whole-browser-leak-capture",
+          "name": "Whole-browser leak capture",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        }
+      ]
+    },
+    {
+      "product": "Browser",
+      "name": "Extensions",
+      "checks": [
+        {
+          "id": "browser-bounded-mv3-zip-import",
+          "name": "Bounded MV3 ZIP import",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-permissions-and-versions",
+          "name": "Permissions and versions",
+          "state": "source_tested",
+          "evidence": "docs/extensions.md"
+        },
+        {
+          "id": "browser-per-profile-assignment",
+          "name": "Per-profile assignment",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-immutable-package-checks",
+          "name": "Immutable package checks",
+          "state": "source_tested",
+          "evidence": "docs/extensions.md"
+        },
+        {
+          "id": "browser-restart-storage-persistence",
+          "name": "Restart storage persistence",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-portable-extension-archive",
+          "name": "Portable extension archive",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-catalog-removal",
+          "name": "Catalog removal",
+          "state": "planned",
+          "evidence": "docs/extensions.md"
+        },
+        {
+          "id": "browser-version-storage-migration",
+          "name": "Version storage migration",
+          "state": "planned",
+          "evidence": "docs/extensions.md"
+        },
+        {
+          "id": "browser-long-windows-launch-paths",
+          "name": "Long Windows launch paths",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        }
+      ]
+    },
+    {
+      "product": "Browser",
+      "name": "Desktop and engines",
+      "checks": [
+        {
+          "id": "browser-windows-installer",
+          "name": "Windows installer",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-optional-brave-engine",
+          "name": "Optional Brave engine",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-staged-engine-canary",
+          "name": "Staged engine canary",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "browser-custom-kernel-activation",
+          "name": "Custom kernel activation",
+          "state": "in_progress",
+          "evidence": "native/chromium/README.md"
+        },
+        {
+          "id": "browser-native-linux-runtime",
+          "name": "Native Linux runtime",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-firefox-engine",
+          "name": "Firefox engine",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-mobile-device-engine",
+          "name": "Mobile/device engine",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "browser-live-profile-synchronizer",
+          "name": "Live profile synchronizer",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        }
+      ]
+    },
+    {
+      "product": "Workbench",
+      "name": "Run lifecycle",
+      "checks": [
+        {
+          "id": "workbench-validated-automation-inputs",
+          "name": "Validated automation inputs",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-browser-api-launch",
+          "name": "Browser API launch",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-durable-run-queue",
+          "name": "Durable run queue",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-follow-up-input",
+          "name": "Follow-up input",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-cooperative-pause-resume",
+          "name": "Cooperative pause/resume",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-cancellation-and-deadlines",
+          "name": "Cancellation and deadlines",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-finish-and-close",
+          "name": "Finish and close",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-archive-checksum",
+          "name": "Archive checksum",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-saved-run-history",
+          "name": "Saved run history",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-identity-profile-reuse",
+          "name": "Identity/profile reuse",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-failed-run-preservation",
+          "name": "Failed-run preservation",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-lease-release",
+          "name": "Lease release",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        }
+      ]
+    },
+    {
+      "product": "Workbench",
+      "name": "Visual flows",
+      "checks": [
+        {
+          "id": "workbench-declarative-flow-packs",
+          "name": "Declarative flow packs",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-graph-layout",
+          "name": "Graph layout",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-action-inspector",
+          "name": "Action inspector",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-draft-revisions",
+          "name": "Draft revisions",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-undo-and-redo",
+          "name": "Undo and redo",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-validation",
+          "name": "Validation",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-immutable-publication",
+          "name": "Immutable publication",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-published-run-selection",
+          "name": "Published run selection",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-interaction-recorder",
+          "name": "Interaction recorder",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-visual-branches-and-loops",
+          "name": "Visual branches and loops",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-extraction-authoring",
+          "name": "Extraction authoring",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-recognition-authoring",
+          "name": "Recognition authoring",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        }
+      ]
+    },
+    {
+      "product": "Workbench",
+      "name": "Schedules",
+      "checks": [
+        {
+          "id": "workbench-one-time-schedules",
+          "name": "One-time schedules",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-interval-schedules",
+          "name": "Interval schedules",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-encrypted-inputs",
+          "name": "Encrypted inputs",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-missed-run-coalescing",
+          "name": "Missed-run coalescing",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-uncertain-admission-quarantine",
+          "name": "Uncertain admission quarantine",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-calendar-cron-rules",
+          "name": "Calendar cron rules",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-iana-timezone-dst-rules",
+          "name": "IANA timezone/DST rules",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-wake-a-sleeping-pc",
+          "name": "Wake a sleeping PC",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        }
+      ]
+    },
+    {
+      "product": "Workbench",
+      "name": "Integration",
+      "checks": [
+        {
+          "id": "workbench-embedded-browser-plug-in",
+          "name": "Embedded Browser plug-in",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-separate-browser-workbench-apis",
+          "name": "Separate Browser/Workbench APIs",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-typescript-clients",
+          "name": "TypeScript clients",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-python-clients",
+          "name": "Python clients",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-streamed-archive-transport",
+          "name": "Streamed archive transport",
+          "state": "verified",
+          "evidence": "docs/api.md"
+        },
+        {
+          "id": "workbench-extension-enabled-automation",
+          "name": "Extension-enabled automation",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-selenium-qualification",
+          "name": "Selenium qualification",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-durable-event-replay-coverage",
+          "name": "Durable event replay coverage",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        }
+      ]
+    },
+    {
+      "product": "Workbench",
+      "name": "Release and recovery",
+      "checks": [
+        {
+          "id": "workbench-offline-update-signatures",
+          "name": "Offline update signatures",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-verified-upgrade-backup",
+          "name": "Verified upgrade backup",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-preserved-coordinator-identity",
+          "name": "Preserved coordinator identity",
+          "state": "verified",
+          "evidence": "docs/research/local-desktop-upgrade-identity.md"
+        },
+        {
+          "id": "workbench-new-desktop-feature-release",
+          "name": "New desktop feature release",
+          "state": "verified",
+          "evidence": "docs/validation.md"
+        },
+        {
+          "id": "workbench-full-rollback-cycle-test",
+          "name": "Full rollback-cycle test",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-forced-exit-recovery-matrix",
+          "name": "Forced-exit recovery matrix",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-capacity-performance-benchmark",
+          "name": "Capacity/performance benchmark",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        },
+        {
+          "id": "workbench-local-roles-and-sharing",
+          "name": "Local roles and sharing",
+          "state": "planned",
+          "evidence": "docs/research/completion-gates.md"
+        }
+      ]
+    }
+  ]
+}

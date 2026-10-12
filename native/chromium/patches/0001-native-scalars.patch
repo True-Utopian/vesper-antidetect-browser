@@ -1,0 +1,248 @@
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -3250,6 +3250,9 @@
+         switches::kReaderModeHeuristics,
+         sync_tab_context::kTabContextAllowedOriginSwitch,
+         translate::switches::kTranslateSecurityOrigin,
++        "vesper-canvas-seed",
++        "vesper-device-memory",
++        "vesper-hardware-concurrency",
+     };
+ 
+     command_line->CopySwitchesFrom(browser_command_line, kSwitchNames);
+diff --git a/third_party/blink/common/BUILD.gn b/third_party/blink/common/BUILD.gn
+--- a/third_party/blink/common/BUILD.gn
++++ b/third_party/blink/common/BUILD.gn
+@@ -387,6 +387,7 @@
+     "client_hints/enabled_client_hints_unittest.cc",
+     "custom_handlers/protocol_handler_utils_unittest.cc",
+     "device_memory/approximated_device_memory_unittest.cc",
++    "device_memory/vesper_native_scalar_policy_unittest.cc",
+     "frame/delegated_capability_request_token_unittest.cc",
+     "frame/user_activation_state_unittest.cc",
+     "indexeddb/indexed_db_default_mojom_traits_unittest.cc",
+diff --git a/third_party/blink/common/device_memory/approximated_device_memory.cc b/third_party/blink/common/device_memory/approximated_device_memory.cc
+--- a/third_party/blink/common/device_memory/approximated_device_memory.cc
++++ b/third_party/blink/common/device_memory/approximated_device_memory.cc
+@@ -8,6 +8,7 @@
+ #include "base/check_op.h"
+ #include "base/feature_list.h"
+ #include "base/system/sys_info.h"
++#include "third_party/blink/public/common/device_memory/vesper_native_scalar_policy.h"
+ #include "third_party/blink/public/common/features.h"
+ 
+ namespace blink {
+@@ -27,6 +28,9 @@
+ 
+ // static
+ float ApproximatedDeviceMemory::GetApproximatedDeviceMemory() {
++  if (const auto memory = VesperNativeScalarPolicy::Get().device_memory) {
++    return *memory;
++  }
+   return approximated_device_memory_gb_;
+ }
+ 
+diff --git a/third_party/blink/common/device_memory/vesper_native_scalar_policy_unittest.cc b/third_party/blink/common/device_memory/vesper_native_scalar_policy_unittest.cc
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/common/device_memory/vesper_native_scalar_policy_unittest.cc
+@@ -0,0 +1,99 @@
++// Copyright 2026 true-utopian
++// SPDX-License-Identifier: BSD-3-Clause
++
++#include "third_party/blink/public/common/device_memory/vesper_native_scalar_policy.h"
++
++#include "testing/gtest/include/gtest/gtest.h"
++#include "third_party/blink/public/common/device_memory/approximated_device_memory.h"
++
++namespace blink {
++namespace {
++
++TEST(VesperNativeScalarPolicyTest, MissingSwitchesRetainNativeFallback) {
++  const base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++  const auto policy = VesperNativeScalarPolicy::Parse(command_line);
++  EXPECT_FALSE(policy.hardware_concurrency.has_value());
++  EXPECT_FALSE(policy.device_memory.has_value());
++}
++
++TEST(VesperNativeScalarPolicyTest, CpuAcceptsBoundaries) {
++  for (const unsigned value : {1u, 8u, 1024u}) {
++    base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++    command_line.AppendSwitchASCII("vesper-hardware-concurrency",
++                                   base::NumberToString(value));
++    EXPECT_EQ(
++        VesperNativeScalarPolicy::Parse(command_line).hardware_concurrency,
++        value);
++  }
++}
++
++TEST(VesperNativeScalarPolicyTest, CpuRejectsMalformedOrUnboundedValues) {
++  for (const char* value : {"", "0", "01", "-1", "+4", "4.0", " 4", "4 ", "0x4",
++                            "1025", "4294967296", "eight"}) {
++    SCOPED_TRACE(value);
++    base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++    command_line.AppendSwitchASCII("vesper-hardware-concurrency", value);
++    EXPECT_FALSE(VesperNativeScalarPolicy::Parse(command_line)
++                     .hardware_concurrency.has_value());
++  }
++}
++
++TEST(VesperNativeScalarPolicyTest, MemoryAcceptsPlatformBuckets) {
++#if BUILDFLAG(IS_ANDROID)
++  const unsigned buckets[] = {1, 2, 4, 8};
++#else
++  const unsigned buckets[] = {2, 4, 8, 16, 32};
++#endif
++  for (const unsigned value : buckets) {
++    base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++    command_line.AppendSwitchASCII("vesper-device-memory",
++                                   base::NumberToString(value));
++    EXPECT_EQ(VesperNativeScalarPolicy::Parse(command_line).device_memory,
++              static_cast<float>(value));
++  }
++}
++
++TEST(VesperNativeScalarPolicyTest, MemoryRejectsNonCanonicalValues) {
++  for (const char* value : {"", "0", "0.25", "0.5", "3", "64", "-4", "4.0",
++                            "04", " 4", "4 ", "NaN", "Infinity"}) {
++    SCOPED_TRACE(value);
++    base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++    command_line.AppendSwitchASCII("vesper-device-memory", value);
++    EXPECT_FALSE(VesperNativeScalarPolicy::Parse(command_line)
++                     .device_memory.has_value());
++  }
++}
++
++TEST(VesperNativeScalarPolicyTest, FieldsFailIndependently) {
++  base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++  command_line.AppendSwitchASCII("vesper-hardware-concurrency", "0");
++  command_line.AppendSwitchASCII("vesper-device-memory", "4");
++  const auto policy = VesperNativeScalarPolicy::Parse(command_line);
++  EXPECT_FALSE(policy.hardware_concurrency.has_value());
++  EXPECT_EQ(policy.device_memory, 4.0f);
++}
++
++TEST(VesperNativeScalarPolicyTest, MemoryRejectsOtherPlatformBuckets) {
++  base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
++#if BUILDFLAG(IS_ANDROID)
++  command_line.AppendSwitchASCII("vesper-device-memory", "16");
++#else
++  command_line.AppendSwitchASCII("vesper-device-memory", "1");
++#endif
++  EXPECT_FALSE(
++      VesperNativeScalarPolicy::Parse(command_line).device_memory.has_value());
++}
++
++TEST(VesperNativeScalarPolicyTest,
++     CommonGetterUsesLaunchPolicyOrNativeFallback) {
++  const auto expected =
++      VesperNativeScalarPolicy::Parse(*base::CommandLine::ForCurrentProcess());
++  ApproximatedDeviceMemory::SetPhysicalMemoryMBForTesting(8192);
++  EXPECT_EQ(ApproximatedDeviceMemory::GetApproximatedDeviceMemory(),
++            expected.device_memory.value_or(8.0f));
++  EXPECT_EQ(VesperNativeScalarPolicy::Get().hardware_concurrency,
++            expected.hardware_concurrency);
++}
++
++}  // namespace
++}  // namespace blink
+diff --git a/third_party/blink/public/common/BUILD.gn b/third_party/blink/public/common/BUILD.gn
+--- a/third_party/blink/public/common/BUILD.gn
++++ b/third_party/blink/public/common/BUILD.gn
+@@ -142,6 +142,7 @@
+     "css/scripting.h",
+     "custom_handlers/protocol_handler_utils.h",
+     "device_memory/approximated_device_memory.h",
++    "device_memory/vesper_native_scalar_policy.h",
+     "dom/dom_node_id.h",
+     "dom_storage/session_storage_namespace_id.h",
+     "features.h",
+diff --git a/third_party/blink/public/common/device_memory/vesper_native_scalar_policy.h b/third_party/blink/public/common/device_memory/vesper_native_scalar_policy.h
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/public/common/device_memory/vesper_native_scalar_policy.h
+@@ -0,0 +1,65 @@
++// Copyright 2026 true-utopian
++// SPDX-License-Identifier: BSD-3-Clause
++
++#ifndef THIRD_PARTY_BLINK_PUBLIC_COMMON_DEVICE_MEMORY_VESPER_NATIVE_SCALAR_POLICY_H_
++#define THIRD_PARTY_BLINK_PUBLIC_COMMON_DEVICE_MEMORY_VESPER_NATIVE_SCALAR_POLICY_H_
++
++#include <algorithm>
++#include <optional>
++#include <string>
++
++#include "base/command_line.h"
++#include "base/strings/string_number_conversions.h"
++#include "build/build_config.h"
++
++namespace blink {
++
++// Immutable process policy. Each Vesper profile owns a separate browser
++// process; every renderer inherits its scalar switches at creation.
++// Workers use the same native getters and require no script injection.
++struct VesperNativeScalarPolicy {
++  std::optional<unsigned> hardware_concurrency;
++  std::optional<float> device_memory;
++
++  static VesperNativeScalarPolicy Parse(const base::CommandLine& command_line) {
++    VesperNativeScalarPolicy policy;
++    const std::string cpu =
++        command_line.GetSwitchValueASCII("vesper-hardware-concurrency");
++    unsigned count = 0;
++    if (!cpu.empty() && cpu.front() != '0' &&
++        std::all_of(cpu.begin(), cpu.end(),
++                    [](char c) { return c >= '0' && c <= '9'; }) &&
++        base::StringToUint(cpu, &count) && count <= 1024) {
++      policy.hardware_concurrency = count;
++    }
++
++    const std::string memory =
++        command_line.GetSwitchValueASCII("vesper-device-memory");
++    // Match the pinned Chromium implementation's platform-specific buckets.
++    // Canonical strings intentionally reject NaN, fractions and whitespace.
++#if BUILDFLAG(IS_ANDROID)
++    constexpr unsigned kMemoryBuckets[] = {1, 2, 4, 8};
++#else
++    constexpr unsigned kMemoryBuckets[] = {2, 4, 8, 16, 32};
++#endif
++    for (const unsigned bucket : kMemoryBuckets) {
++      if (memory == base::NumberToString(bucket)) {
++        policy.device_memory = static_cast<float>(bucket);
++        break;
++      }
++    }
++    return policy;
++  }
++
++  static const VesperNativeScalarPolicy& Get() {
++    // Thread-safe C++ initialization: main-thread and worker getters share the
++    // launch policy. Invalid or absent fields keep Chromium's native fallback.
++    static const VesperNativeScalarPolicy policy =
++        Parse(*base::CommandLine::ForCurrentProcess());
++    return policy;
++  }
++};
++
++}  // namespace blink
++
++#endif  // THIRD_PARTY_BLINK_PUBLIC_COMMON_DEVICE_MEMORY_VESPER_NATIVE_SCALAR_POLICY_H_
+diff --git a/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc b/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc
+--- a/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc
++++ b/third_party/blink/renderer/core/frame/navigator_concurrent_hardware.cc
+@@ -5,10 +5,14 @@
+ #include "third_party/blink/renderer/core/frame/navigator_concurrent_hardware.h"
+ 
+ #include "base/system/sys_info.h"
++#include "third_party/blink/public/common/device_memory/vesper_native_scalar_policy.h"
+ 
+ namespace blink {
+ 
+ unsigned NavigatorConcurrentHardware::hardwareConcurrency() const {
++  if (const auto count = VesperNativeScalarPolicy::Get().hardware_concurrency) {
++    return *count;
++  }
+   return static_cast<unsigned>(base::SysInfo::NumberOfProcessors());
+ }
+ 

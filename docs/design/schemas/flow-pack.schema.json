@@ -1,0 +1,963 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:workbench:schema:flow-pack:v1",
+  "title": "Workbench declarative flow pack v1 (proposal)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "title",
+    "registry",
+    "inputSchema",
+    "start",
+    "limits",
+    "entryByState",
+    "choices",
+    "steps",
+    "onUnexpected",
+    "evidence",
+    "execution",
+    "onUnexpectedStep",
+    "identityPolicy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "registry": {
+      "$ref": "urn:workbench:schema:state-registry:v1"
+    },
+    "inputSchema": {
+      "type": "object",
+      "description": "A locally compiled object-input JSON Schema; no remote refs, code, schema transforms or defaults containing secrets."
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originRef",
+        "pathname"
+      ],
+      "properties": {
+        "originRef": {
+          "$ref": "#/$defs/id"
+        },
+        "pathname": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 512
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxSteps",
+        "maxTotalMs",
+        "maxStateVisits",
+        "maxInputRequests",
+        "maxReconciliations"
+      ],
+      "properties": {
+        "maxSteps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "maxTotalMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 1800000
+        },
+        "maxStateVisits": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "maxInputRequests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "maxReconciliations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "entryByState": {
+      "$ref": "#/$defs/routes"
+    },
+    "choices": {
+      "type": "object",
+      "maxProperties": 20,
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/choiceSource"
+      }
+    },
+    "steps": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 200,
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "onUnexpected": {
+      "enum": [
+        "pause-for-review",
+        "fail-preserve-profile"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "screenshots",
+        "retentionDays"
+      ],
+      "properties": {
+        "mode": {
+          "const": "structured-redacted"
+        },
+        "screenshots": {
+          "enum": [
+            "off",
+            "masked-on-failure"
+          ]
+        },
+        "retentionDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profilePolicyId",
+        "proxyPolicyId"
+      ],
+      "properties": {
+        "profilePolicyId": {
+          "$ref": "#/$defs/id"
+        },
+        "proxyPolicyId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "onUnexpectedStep": {
+      "$ref": "#/$defs/id"
+    },
+    "identityPolicy": {
+      "enum": [
+        "anonymous",
+        "required"
+      ],
+      "description": "Pack-level completion gate. A trusted manifest requiring identity cannot be weakened by the pack."
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "routes": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 100,
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "value": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "key"
+          ],
+          "properties": {
+            "source": {
+              "enum": [
+                "input",
+                "answer",
+                "capture"
+              ]
+            },
+            "key": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "value"
+          ],
+          "properties": {
+            "source": {
+              "const": "literal"
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        }
+      ]
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "states",
+        "require",
+        "timeoutMs"
+      ],
+      "properties": {
+        "states": {
+          "$ref": "#/$defs/ids"
+        },
+        "require": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "$ref": "urn:workbench:schema:state-registry:v1#/$defs/predicate"
+          }
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 120000
+        }
+      }
+    },
+    "retry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "maxAttempts"
+          ],
+          "properties": {
+            "mode": {
+              "const": "never"
+            },
+            "maxAttempts": {
+              "const": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "maxAttempts",
+            "backoffMs",
+            "justification"
+          ],
+          "properties": {
+            "mode": {
+              "const": "safe-repeat"
+            },
+            "maxAttempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "backoffMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000
+            },
+            "justification": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "maxAttempts",
+            "backoffMs",
+            "resolver"
+          ],
+          "properties": {
+            "mode": {
+              "const": "reconcile"
+            },
+            "maxAttempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3
+            },
+            "backoffMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000
+            },
+            "resolver": {
+              "$ref": "#/$defs/id",
+              "description": "Operator-installed read-only receipt resolver. Absence is a compile error, not permission to replay."
+            }
+          }
+        }
+      ]
+    },
+    "choiceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "states",
+        "container",
+        "optionSelector",
+        "keyAttribute",
+        "labelAttribute",
+        "maxOptions",
+        "ttlMs",
+        "onStale",
+        "patterns",
+        "onAllUnavailable"
+      ],
+      "properties": {
+        "states": {
+          "$ref": "#/$defs/ids"
+        },
+        "container": {
+          "$ref": "#/$defs/id"
+        },
+        "optionSelector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Relative static selector inside the one visible container; each option itself is the click target."
+        },
+        "keyAttribute": {
+          "type": "string",
+          "pattern": "^data-[a-z0-9-]+$"
+        },
+        "labelAttribute": {
+          "type": "string",
+          "pattern": "^data-[a-z0-9-]+$"
+        },
+        "maxOptions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "ttlMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000
+        },
+        "onStale": {
+          "$ref": "#/$defs/id",
+          "description": "Step that creates a new choice request; never silently select another option."
+        },
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/choicePattern"
+          }
+        },
+        "onAllUnavailable": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "operation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "value"
+          ],
+          "properties": {
+            "op": {
+              "const": "fill"
+            },
+            "target": {
+              "$ref": "#/$defs/id"
+            },
+            "value": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "effect"
+          ],
+          "properties": {
+            "op": {
+              "const": "click"
+            },
+            "target": {
+              "$ref": "#/$defs/id"
+            },
+            "effect": {
+              "enum": [
+                "navigation",
+                "mutation"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "originRef",
+            "pathname"
+          ],
+          "properties": {
+            "op": {
+              "const": "navigate"
+            },
+            "originRef": {
+              "$ref": "#/$defs/id"
+            },
+            "pathname": {
+              "type": "string",
+              "pattern": "^/",
+              "maxLength": 512
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op"
+          ],
+          "properties": {
+            "op": {
+              "const": "wait"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "choiceSource",
+            "answerKey"
+          ],
+          "properties": {
+            "op": {
+              "const": "chooseOption"
+            },
+            "choiceSource": {
+              "$ref": "#/$defs/id"
+            },
+            "answerKey": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "read",
+            "outputKey",
+            "sensitivity",
+            "maxLength"
+          ],
+          "properties": {
+            "op": {
+              "const": "scrape"
+            },
+            "target": {
+              "$ref": "#/$defs/id"
+            },
+            "outputKey": {
+              "$ref": "#/$defs/id"
+            },
+            "sensitivity": {
+              "enum": [
+                "public",
+                "sensitive"
+              ]
+            },
+            "maxLength": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4096
+            },
+            "read": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "name"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "attribute"
+                    },
+                    "name": {
+                      "type": "string",
+                      "pattern": "^(data-[a-z0-9-]+|aria-[a-z0-9-]+)$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "resolver",
+            "expected",
+            "receiptKey"
+          ],
+          "properties": {
+            "op": {
+              "const": "bindIdentity"
+            },
+            "resolver": {
+              "$ref": "#/$defs/id"
+            },
+            "expected": {
+              "$ref": "#/$defs/value"
+            },
+            "receiptKey": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        }
+      ]
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "requires",
+            "do",
+            "postcondition",
+            "next",
+            "retry",
+            "onError",
+            "onTimeout",
+            "onUncertain",
+            "recoveryByState"
+          ],
+          "properties": {
+            "kind": {
+              "const": "action"
+            },
+            "requires": {
+              "$ref": "#/$defs/ids"
+            },
+            "do": {
+              "$ref": "#/$defs/operation"
+            },
+            "postcondition": {
+              "$ref": "#/$defs/condition"
+            },
+            "next": {
+              "$ref": "#/$defs/routes"
+            },
+            "retry": {
+              "$ref": "#/$defs/retry"
+            },
+            "onError": {
+              "$ref": "#/$defs/id"
+            },
+            "onTimeout": {
+              "$ref": "#/$defs/id"
+            },
+            "onUncertain": {
+              "$ref": "#/$defs/id"
+            },
+            "recoveryByState": {
+              "$ref": "#/$defs/recoveryRoutes"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "requires",
+            "title",
+            "answerKey",
+            "input",
+            "timeoutMs",
+            "next",
+            "onError",
+            "onTimeout",
+            "onUncertain",
+            "recoveryByState"
+          ],
+          "properties": {
+            "kind": {
+              "const": "input"
+            },
+            "requires": {
+              "$ref": "#/$defs/ids"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "answerKey": {
+              "$ref": "#/$defs/id"
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 300000
+            },
+            "input": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "choiceSource"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "choice"
+                    },
+                    "choiceSource": {
+                      "$ref": "#/$defs/id"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind",
+                    "secret",
+                    "minLength",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "text"
+                    },
+                    "secret": {
+                      "type": "boolean"
+                    },
+                    "minLength": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000
+                    },
+                    "maxLength": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000
+                    }
+                  }
+                }
+              ]
+            },
+            "next": {
+              "$ref": "#/$defs/routes"
+            },
+            "onError": {
+              "$ref": "#/$defs/id"
+            },
+            "onTimeout": {
+              "$ref": "#/$defs/id"
+            },
+            "onUncertain": {
+              "$ref": "#/$defs/id"
+            },
+            "recoveryByState": {
+              "$ref": "#/$defs/recoveryRoutes"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "requires",
+            "mode"
+          ],
+          "properties": {
+            "kind": {
+              "const": "complete"
+            },
+            "requires": {
+              "$ref": "#/$defs/ids"
+            },
+            "mode": {
+              "enum": [
+                "save",
+                "await-operator-then-save"
+              ]
+            },
+            "identityReceipt": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "requires",
+            "title",
+            "reasonCode",
+            "timeoutMs",
+            "recoveryByState"
+          ],
+          "properties": {
+            "kind": {
+              "const": "review"
+            },
+            "requires": {
+              "$ref": "#/$defs/ids"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "reasonCode": {
+              "$ref": "#/$defs/id"
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 300000
+            },
+            "recoveryByState": {
+              "$ref": "#/$defs/recoveryRoutes"
+            }
+          }
+        }
+      ]
+    },
+    "choicePattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "match",
+        "supported",
+        "availableWhen",
+        "unavailableReason"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "$ref": "#/$defs/id"
+        },
+        "match": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "keyEquals"
+              ],
+              "properties": {
+                "keyEquals": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "keyPattern"
+              ],
+              "properties": {
+                "keyPattern": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "description": "Anchored restricted regular expression over the bounded stable option key. Validator rejects backreferences, lookaround and nested quantified groups."
+                }
+              }
+            }
+          ]
+        },
+        "supported": {
+          "type": "boolean"
+        },
+        "availableWhen": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "attribute",
+              "equals"
+            ],
+            "properties": {
+              "attribute": {
+                "type": "string",
+                "pattern": "^(data-[a-z0-9-]+|aria-disabled)$"
+              },
+              "equals": {
+                "type": "string",
+                "maxLength": 100
+              }
+            }
+          }
+        },
+        "unavailableReason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    "recoveryRoutes": {
+      "type": "object",
+      "minProperties": 0,
+      "maxProperties": 100,
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/id"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "identityPolicy": {
+            "const": "required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "steps": {
+            "additionalProperties": {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "complete"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "then": {
+                "required": [
+                  "identityReceipt"
+                ],
+                "properties": {
+                  "identityReceipt": {
+                    "$ref": "#/$defs/id"
+                  }
+                }
+              },
+              "type": "object"
+            },
+            "type": "object"
+          }
+        }
+      }
+    }
+  ]
+}

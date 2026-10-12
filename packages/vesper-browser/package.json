@@ -1,0 +1,55 @@
+{
+  "name": "@true-utopian/vesper-browser",
+  "version": "0.4.2",
+  "description": "Vesper Browser by true-utopian: independent local Chromium profiles and proxy routing.",
+  "author": "true-utopian",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "vesper-browser": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "public",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "serve": "node dist/cli.js serve",
+    "token": "node dist/cli.js token",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "@puppeteer/browsers": "3.2.3",
+    "proper-lockfile": "4.1.2",
+    "proxy-chain": "3.0.1",
+    "puppeteer-core": "25.12.0",
+    "tar": "7.5.22",
+    "ws": "^8.22.0",
+    "yauzl": "3.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/proper-lockfile": "4.1.4",
+    "@types/ws": "^8.18.1",
+    "@types/yauzl": "3.4.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/True-Utopian/vesper-antidetect-browser.git"
+  }
+}

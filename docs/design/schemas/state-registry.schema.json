@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:workbench:schema:state-registry:v1",
+  "title": "Workbench state registry v1 (proposal)",
+  "description": "Finite, declarative browser-state evidence. All references resolve locally; no executable code or remote schema loading.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "originRefs",
+    "targets",
+    "states",
+    "policy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "originRefs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "targets": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 200,
+      "propertyNames": {
+        "$ref": "#/$defs/id"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/target"
+      }
+    },
+    "states": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 100,
+      "propertyNames": {
+        "allOf": [
+          {
+            "$ref": "#/$defs/id"
+          },
+          {
+            "not": {
+              "enum": [
+                "unknown",
+                "blank",
+                "ambiguous",
+                "settling",
+                "unsupported",
+                "invalidated"
+              ]
+            }
+          }
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/state"
+      }
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selector",
+        "frame",
+        "cardinality"
+      ],
+      "properties": {
+        "selector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Static CSS or Puppeteer selector. Never interpolate page text or user input."
+        },
+        "frame": {
+          "const": "main",
+          "description": "v1 deliberately supports only the selected page's main frame."
+        },
+        "cardinality": {
+          "enum": [
+            "one",
+            "many"
+          ]
+        }
+      }
+    },
+    "predicate": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "originRef",
+            "pathname"
+          ],
+          "properties": {
+            "op": {
+              "const": "urlEquals"
+            },
+            "originRef": {
+              "$ref": "#/$defs/id"
+            },
+            "pathname": {
+              "type": "string",
+              "pattern": "^/",
+              "maxLength": 512,
+              "description": "Exact URL pathname. Query and fragment never imply a match."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target"
+          ],
+          "properties": {
+            "op": {
+              "enum": [
+                "visible",
+                "present",
+                "absent",
+                "enabled"
+              ]
+            },
+            "target": {
+              "$ref": "#/$defs/id"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "equals"
+          ],
+          "properties": {
+            "op": {
+              "const": "textEquals"
+            },
+            "target": {
+              "$ref": "#/$defs/id"
+            },
+            "equals": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Expected public, static UI text; observed text is not logged."
+            },
+            "normalizeWhitespace": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "op",
+            "target",
+            "name",
+            "equals"
+          ],
+          "properties": {
+            "op": {
+              "const": "attributeEquals"
+            },
+            "target": {
+              "$ref": "#/$defs/id"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^(data-[a-z0-9-]+|role|aria-[a-z0-9-]+)$"
+            },
+            "equals": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "predicate",
+        "weight"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "predicate": {
+          "$ref": "#/$defs/predicate"
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "actionable",
+        "require",
+        "forbid",
+        "support",
+        "minEvidenceScore"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "actionable": {
+          "type": "boolean"
+        },
+        "refines": {
+          "type": "array",
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "default": []
+        },
+        "require": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/predicate"
+          }
+        },
+        "forbid": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/predicate"
+          }
+        },
+        "support": {
+          "type": "array",
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "minEvidenceScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rule score only: 1 for empty support after every hard guard passes; otherwise true support weight / total configured support weight. Never a probability."
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sampleIntervalMs",
+        "observationTimeoutMs",
+        "maxObservationAgeMs",
+        "stableSamples",
+        "stableForMs",
+        "blankGraceMs",
+        "unknownTimeoutMs",
+        "overlap"
+      ],
+      "properties": {
+        "sampleIntervalMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "observationTimeoutMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "maxObservationAgeMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "stableSamples": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "stableForMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "blankGraceMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000
+        },
+        "unknownTimeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 120000
+        },
+        "overlap": {
+          "const": "abstain-unless-refinement",
+          "description": "Array order, last state, priority numbers and expected transitions never break an incomparable tie."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,547 @@
+diff --git a/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc b/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc
+--- a/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc
++++ b/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc
+@@ -19,6 +19,7 @@
+ #include "third_party/blink/renderer/platform/graphics/image_data_buffer.h"
+ #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
+ #include "third_party/blink/renderer/platform/graphics/unaccelerated_static_bitmap_image.h"
++#include "third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
+ #include "third_party/blink/renderer/platform/image-encoders/image_encoder_utils.h"
+ #include "third_party/blink/renderer/platform/scheduler/public/post_cross_thread_task.h"
+@@ -213,7 +214,19 @@
+     }
+ 
+     if (skia_image_->peekPixels(&src_data_)) {
+-      static_bitmap_image_loaded_ = true;
++      if (const auto seed = VesperCanvasSeedFromCommandLine();
++          seed && IsVesperCanvasReadbackFormat(src_data_)) {
++        auto protected_image = CreateVesperCanvasReadbackImage(src_data_, *seed);
++        if (protected_image && protected_image->peekPixels(&src_data_)) {
++          // src_data_ must be backed by this private image for idle encoding
++          // and any encoder-thread task, never by the displayed canvas.
++          skia_image_ = std::move(protected_image);
++        } else {
++          // Mark encoding unavailable rather than expose pristine pixels.
++          src_data_.reset();
++        }
++      }
++      static_bitmap_image_loaded_ = src_data_.addr() != nullptr;
+ 
+       // Ensure that the size of the to-be-encoded-image does not pass the
+       // maximum size supported by the encoders.
+diff --git a/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc b/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc
+--- a/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc
++++ b/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc
+@@ -1436,7 +1436,7 @@
+   scoped_refptr<StaticBitmapImage> image_bitmap = Snapshot(source_buffer);
+   if (image_bitmap) {
+     std::unique_ptr<ImageDataBuffer> data_buffer =
+-        ImageDataBuffer::Create(image_bitmap);
++        ImageDataBuffer::CreateForCanvasReadback(image_bitmap);
+     if (!data_buffer)
+       return String("data:,");
+ 
+diff --git a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
+--- a/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
++++ b/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc
+@@ -108,6 +108,7 @@
+ #include "third_party/blink/renderer/platform/graphics/skia/skia_utils.h"
+ #include "third_party/blink/renderer/platform/graphics/static_bitmap_image.h"
+ #include "third_party/blink/renderer/platform/graphics/unaccelerated_static_bitmap_image.h"
++#include "third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h"
+ #include "third_party/blink/renderer/platform/graphics/video_frame_image_util.h"
+ #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
+ #include "third_party/blink/renderer/platform/instrumentation/tracing/trace_event.h"
+@@ -868,7 +869,11 @@
+         snapshot->PaintImageForCurrentFrame().readPixels(
+             image_data_pixmap.info(), image_data_pixmap.writable_addr(),
+             image_data_pixmap.rowBytes(), sx, sy);
+-    if (!read_pixels_successful) {
++    if (read_pixels_successful) {
++      if (const auto seed = VesperCanvasSeedFromCommandLine()) {
++        ApplyVesperCanvasReadbackProtection(image_data_pixmap, sx, sy, *seed);
++      }
++    } else {
+       SkIRect bounds =
+           snapshot->PaintImageForCurrentFrame().GetSkImageInfo().bounds();
+       DCHECK(!bounds.intersect(SkIRect::MakeXYWH(sx, sy, sw, sh)));
+diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
+--- a/third_party/blink/renderer/platform/BUILD.gn
++++ b/third_party/blink/renderer/platform/BUILD.gn
+@@ -1335,6 +1335,8 @@
+     "graphics/touch_action_rect.h",
+     "graphics/unaccelerated_static_bitmap_image.cc",
+     "graphics/unaccelerated_static_bitmap_image.h",
++    "graphics/vesper_canvas_readback.cc",
++    "graphics/vesper_canvas_readback.h",
+     "graphics/video_frame_image_util.cc",
+     "graphics/video_frame_image_util.h",
+     "graphics/video_frame_resource_provider.cc",
+@@ -2398,6 +2400,7 @@
+     "graphics/parkable_image_test.cc",
+     "graphics/raster_dark_mode_filter_impl_test.cc",
+     "graphics/static_bitmap_image_transform_test.cc",
++    "graphics/vesper_canvas_readback_test.cc",
+     "graphics/video_frame_image_util_test.cc",
+     "graphics/video_frame_resource_provider_test.cc",
+     "graphics/video_frame_sink_bundle_test.cc",
+diff --git a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc b/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
+--- a/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
++++ b/third_party/blink/renderer/platform/graphics/image_data_buffer.cc
+@@ -35,6 +35,7 @@
+ #include "base/compiler_specific.h"
+ #include "base/logging.h"
+ #include "base/memory/ptr_util.h"
++#include "third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h"
+ #include "third_party/blink/renderer/platform/image-encoders/image_encoder_utils.h"
+ #include "third_party/blink/renderer/platform/wtf/text/base64.h"
+ #include "third_party/blink/renderer/platform/wtf/text/strcat.h"
+@@ -132,6 +133,26 @@
+   return buffer;
+ }
+ 
++std::unique_ptr<ImageDataBuffer> ImageDataBuffer::CreateForCanvasReadback(
++    scoped_refptr<StaticBitmapImage> image) {
++  auto buffer = Create(std::move(image));
++  if (!buffer) {
++    return nullptr;
++  }
++  const auto seed = VesperCanvasSeedFromCommandLine();
++  if (!seed || !IsVesperCanvasReadbackFormat(buffer->pixmap_)) {
++    return buffer;
++  }
++  auto protected_image =
++      CreateVesperCanvasReadbackImage(buffer->pixmap_, *seed);
++  if (!protected_image || !protected_image->peekPixels(&buffer->pixmap_)) {
++    // An enabled policy must not silently fall back to unprotected export.
++    return nullptr;
++  }
++  buffer->retained_image_ = std::move(protected_image);
++  return buffer;
++}
++
+ base::span<const uint8_t> ImageDataBuffer::PixelData() const {
+   DCHECK(is_valid_);
+   return gfx::SkPixmapToSpan(pixmap_);
+diff --git a/third_party/blink/renderer/platform/graphics/image_data_buffer.h b/third_party/blink/renderer/platform/graphics/image_data_buffer.h
+--- a/third_party/blink/renderer/platform/graphics/image_data_buffer.h
++++ b/third_party/blink/renderer/platform/graphics/image_data_buffer.h
+@@ -51,6 +51,10 @@
+       scoped_refptr<StaticBitmapImage>);
+   static std::unique_ptr<ImageDataBuffer> Create(const SkPixmap&);
+ 
++  // Canvas exports explicitly opt in; video/accessibility images stay intact.
++  static std::unique_ptr<ImageDataBuffer> CreateForCanvasReadback(
++      scoped_refptr<StaticBitmapImage>);
++
+   String ToDataURL(const ImageEncodingMimeType mime_type,
+                    const double& quality) const;
+   bool EncodeImage(const ImageEncodingMimeType mime_type,
+diff --git a/third_party/blink/renderer/platform/graphics/vesper_canvas_readback.cc b/third_party/blink/renderer/platform/graphics/vesper_canvas_readback.cc
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/renderer/platform/graphics/vesper_canvas_readback.cc
+@@ -0,0 +1,138 @@
++// Copyright 2026 true-utopian
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h"
++
++#include <string_view>
++#include <utility>
++
++#include "base/command_line.h"
++#include "base/strings/string_number_conversions.h"
++#include "third_party/skia/include/core/SkData.h"
++#include "ui/gfx/skia_span_util.h"
++
++namespace blink {
++namespace {
++
++constexpr char kCanvasSeedSwitch[] = "vesper-canvas-seed";
++
++// Deterministic integer avalanche, not a cryptographic privacy primitive.
++uint64_t MixCanvasCoordinate(uint64_t value) {
++  value ^= value >> 30;
++  value *= UINT64_C(0xbf58476d1ce4e5b9);
++  value ^= value >> 27;
++  value *= UINT64_C(0x94d049bb133111eb);
++  return value ^ (value >> 31);
++}
++
++}  // namespace
++
++std::optional<uint64_t> ParseVesperCanvasSeed(std::string_view encoded) {
++  if (encoded.size() != 16) {
++    return std::nullopt;
++  }
++  for (char c : encoded) {
++    if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
++          (c >= 'A' && c <= 'F'))) {
++      return std::nullopt;
++    }
++  }
++  uint64_t seed = 0;
++  if (!base::HexStringToUInt64(encoded, &seed)) {
++    return std::nullopt;
++  }
++  return seed;
++}
++
++std::optional<uint64_t> VesperCanvasSeedFromCommandLine() {
++  // A renderer belongs to one profile. Parse its immutable startup policy once,
++  // including on worker threads; pages cannot change this process-local value.
++  static const std::optional<uint64_t> seed = ParseVesperCanvasSeed(
++      base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
++          kCanvasSeedSwitch));
++  return seed;
++}
++
++bool IsVesperCanvasReadbackFormat(const SkPixmap& source) {
++  return source.colorType() == kRGBA_8888_SkColorType ||
++         source.colorType() == kBGRA_8888_SkColorType;
++}
++
++void ApplyVesperCanvasReadbackProtection(const SkPixmap& readback,
++                                        int origin_x,
++                                        int origin_y,
++                                        uint64_t seed) {
++  if (readback.colorType() != kRGBA_8888_SkColorType ||
++      readback.alphaType() != kUnpremul_SkAlphaType ||
++      !readback.writable_addr() || readback.width() <= 0 ||
++      readback.height() <= 0 ||
++      readback.rowBytes() < readback.info().minRowBytes()) {
++    return;
++  }
++  auto bytes = gfx::SkPixmapToWritableSpan(readback);
++  if (bytes.empty()) {
++    return;
++  }
++  for (int y = 0; y < readback.height(); ++y) {
++    const uint64_t absolute_y =
++        static_cast<uint64_t>(static_cast<int64_t>(origin_y) + y);
++    const uint64_t row_key = MixCanvasCoordinate(
++        seed ^ MixCanvasCoordinate(absolute_y ^ UINT64_C(0x9e3779b97f4a7c15)));
++    auto row = bytes.subspan(static_cast<size_t>(y) * readback.rowBytes(),
++                             readback.info().minRowBytes());
++    for (int x = 0; x < readback.width(); ++x) {
++      auto pixel = row.subspan(static_cast<size_t>(x) * 4, 4);
++      if (pixel[3] == 0) {
++        continue;
++      }
++      const uint64_t absolute_x =
++          static_cast<uint64_t>(static_cast<int64_t>(origin_x) + x);
++      const uint64_t bits = MixCanvasCoordinate(
++          row_key ^ MixCanvasCoordinate(absolute_x ^ UINT64_C(0xd1b54a32d192ed03)));
++      for (size_t channel = 0; channel < 3; ++channel) {
++        // Setting a low bit, rather than toggling it, is idempotent and changes
++        // each RGB byte by at most one. Alpha and transparent RGB stay intact.
++        pixel[channel] = static_cast<uint8_t>(
++            (pixel[channel] & 0xfe) | ((bits >> channel) & 1));
++      }
++    }
++  }
++}
++
++sk_sp<SkImage> CreateVesperCanvasReadbackImage(const SkPixmap& source,
++                                             uint64_t seed) {
++  if (!IsVesperCanvasReadbackFormat(source) || !source.addr() ||
++      source.width() <= 0 || source.height() <= 0) {
++    return nullptr;
++  }
++  const SkImageInfo info = source.info()
++                               .makeColorType(kRGBA_8888_SkColorType)
++                               .makeAlphaType(kUnpremul_SkAlphaType);
++  const size_t row_bytes = info.minRowBytes();
++  const size_t size = info.computeByteSize(row_bytes);
++  if (SkImageInfo::ByteSizeOverflowed(size)) {
++    return nullptr;
++  }
++  sk_sp<SkData> data = SkData::MakeUninitialized(size);
++  // SkPixmap rejects opaque -> unpremul conversion. Copy as opaque first,
++  // then explicitly materialize alpha=255 in the private RGBA buffer.
++  const SkImageInfo conversion_info = source.alphaType() == kOpaque_SkAlphaType
++                                          ? info.makeAlphaType(kOpaque_SkAlphaType)
++                                          : info;
++  if (!data || !source.readPixels(conversion_info, data->writable_data(),
++                                  row_bytes, 0, 0)) {
++    return nullptr;
++  }
++  SkPixmap readback(info, data->writable_data(), row_bytes);
++  if (source.alphaType() == kOpaque_SkAlphaType) {
++    auto bytes = gfx::SkPixmapToWritableSpan(readback);
++    for (size_t alpha = 3; alpha < bytes.size(); alpha += 4) {
++      bytes[alpha] = 255;
++    }
++  }
++  ApplyVesperCanvasReadbackProtection(readback, 0, 0, seed);
++  return SkImages::RasterFromData(info, std::move(data), row_bytes);
++}
++
++}  // namespace blink
+diff --git a/third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h b/third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h
+@@ -0,0 +1,46 @@
++// Copyright 2026 true-utopian
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef THIRD_PARTY_BLINK_RENDERER_PLATFORM_GRAPHICS_VESPER_CANVAS_READBACK_H_
++#define THIRD_PARTY_BLINK_RENDERER_PLATFORM_GRAPHICS_VESPER_CANVAS_READBACK_H_
++
++#include <cstdint>
++#include <optional>
++#include <string_view>
++
++#include "third_party/blink/renderer/platform/platform_export.h"
++#include "third_party/skia/include/core/SkImage.h"
++#include "third_party/skia/include/core/SkPixmap.h"
++
++namespace blink {
++
++// Anything other than exactly 16 ASCII hex digits disables masking.
++PLATFORM_EXPORT std::optional<uint64_t> ParseVesperCanvasSeed(
++    std::string_view encoded);
++
++// The immutable renderer command line is scoped to one Vesper profile and
++// cached once per process. Policy changes require restarting the renderer.
++PLATFORM_EXPORT std::optional<uint64_t> VesperCanvasSeedFromCommandLine();
++
++// This initial policy supports RGBA8/BGRA8; float formats remain unsupported.
++PLATFORM_EXPORT bool IsVesperCanvasReadbackFormat(const SkPixmap& source);
++
++// Mutates only a caller-owned, RGBA8 unpremultiplied readback buffer, never a
++// canvas backing image. Absolute coordinates preserve overlapping-read equality.
++PLATFORM_EXPORT void ApplyVesperCanvasReadbackProtection(
++    const SkPixmap& readback,
++    int origin_x,
++    int origin_y,
++    uint64_t seed);
++
++// Converts a supported source into an independent RGBA8 unpremultiplied image,
++// applies the same policy at (0, 0), then transfers ownership to an SkImage.
++// Returns nullptr for unsupported formats or allocation/conversion failure.
++PLATFORM_EXPORT sk_sp<SkImage> CreateVesperCanvasReadbackImage(
++    const SkPixmap& source,
++    uint64_t seed);
++
++}  // namespace blink
++
++#endif  // THIRD_PARTY_BLINK_RENDERER_PLATFORM_GRAPHICS_VESPER_CANVAS_READBACK_H_
+diff --git a/third_party/blink/renderer/platform/graphics/vesper_canvas_readback_test.cc b/third_party/blink/renderer/platform/graphics/vesper_canvas_readback_test.cc
+new file mode 100644
+--- /dev/null
++++ b/third_party/blink/renderer/platform/graphics/vesper_canvas_readback_test.cc
+@@ -0,0 +1,208 @@
++// Copyright 2026 true-utopian
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "third_party/blink/renderer/platform/graphics/vesper_canvas_readback.h"
++
++#include <array>
++#include <cstdlib>
++#include <limits>
++
++#include "testing/gtest/include/gtest/gtest.h"
++#include "ui/gfx/skia_span_util.h"
++
++namespace blink {
++namespace {
++
++constexpr uint64_t kSeed = UINT64_C(0x19dc2ef440ac13d1);
++
++SkImageInfo RgbaInfo(int width, int height) {
++  return SkImageInfo::Make(width, height, kRGBA_8888_SkColorType,
++                           kUnpremul_SkAlphaType);
++}
++
++TEST(VesperCanvasReadbackTest, StrictSeedParsingAndZeroIsEnabled) {
++  for (const char* invalid : {"", "1", "0123456789abcde", "0123456789abcdef0",
++                              "0x123456789abcde", " 123456789abcdef",
++                              "0123456789abcdeg", "-123456789abcdef"}) {
++    EXPECT_FALSE(ParseVesperCanvasSeed(invalid).has_value()) << invalid;
++  }
++  const auto zero = ParseVesperCanvasSeed("0000000000000000");
++  ASSERT_TRUE(zero.has_value());
++  EXPECT_EQ(*zero, 0u);
++  const auto maximum = ParseVesperCanvasSeed("FFFFFFFFFFFFFFFF");
++  ASSERT_TRUE(maximum.has_value());
++  EXPECT_EQ(*maximum, std::numeric_limits<uint64_t>::max());
++}
++
++TEST(VesperCanvasReadbackTest, PreservesAlphaTransparentRgbAndRowPadding) {
++  std::array<uint8_t, 24> storage = {
++      17, 29, 43, 0, 101, 111, 121, 127, 91, 92, 93, 94,
++      255, 0, 200, 255, 80, 81, 82, 255, 95, 96, 97, 98};
++  const auto original = storage;
++  const SkPixmap pixmap(RgbaInfo(2, 2), storage.data(), 12);
++  ApplyVesperCanvasReadbackProtection(pixmap, -3, 7, kSeed);
++  for (size_t y = 0; y < 2; ++y) {
++    for (size_t x = 0; x < 2; ++x) {
++      const size_t offset = y * 12 + x * 4;
++      EXPECT_EQ(storage[offset + 3], original[offset + 3]);
++      for (size_t channel = 0; channel < 3; ++channel) {
++        if (original[offset + 3] == 0) {
++          EXPECT_EQ(storage[offset + channel], original[offset + channel]);
++        } else {
++          EXPECT_LE(std::abs(static_cast<int>(storage[offset + channel]) -
++                             static_cast<int>(original[offset + channel])), 1);
++        }
++      }
++    }
++    for (size_t pad = 8; pad < 12; ++pad) {
++      EXPECT_EQ(storage[y * 12 + pad], original[y * 12 + pad]);
++    }
++  }
++}
++
++TEST(VesperCanvasReadbackTest, RepeatedAndReappliedReadsDoNotAccumulate) {
++  std::array<uint8_t, 64> first;
++  first.fill(255);
++  auto second = first;
++  const auto info = RgbaInfo(4, 4);
++  ApplyVesperCanvasReadbackProtection(SkPixmap(info, first.data(), 16),
++                                    0, 0, kSeed);
++  const auto once = first;
++  ApplyVesperCanvasReadbackProtection(SkPixmap(info, first.data(), 16),
++                                    0, 0, kSeed);
++  ApplyVesperCanvasReadbackProtection(SkPixmap(info, second.data(), 16),
++                                    0, 0, kSeed);
++  EXPECT_EQ(first, once);
++  EXPECT_EQ(second, once);
++}
++
++TEST(VesperCanvasReadbackTest, SubrectUsesAbsoluteCoordinates) {
++  std::array<uint8_t, 64> whole;
++  whole.fill(255);
++  std::array<uint8_t, 16> subrect;
++  subrect.fill(255);
++  ApplyVesperCanvasReadbackProtection(
++      SkPixmap(RgbaInfo(4, 4), whole.data(), 16), -2, -3, kSeed);
++  ApplyVesperCanvasReadbackProtection(
++      SkPixmap(RgbaInfo(2, 2), subrect.data(), 8), -1, -2, kSeed);
++  for (size_t y = 0; y < 2; ++y) {
++    for (size_t x = 0; x < 2; ++x) {
++      for (size_t channel = 0; channel < 4; ++channel) {
++        EXPECT_EQ(whole[(y + 1) * 16 + (x + 1) * 4 + channel],
++                  subrect[y * 8 + x * 4 + channel]);
++      }
++    }
++  }
++}
++
++TEST(VesperCanvasReadbackTest, DifferentProfileSeedsChangeAnOpaqueDrawing) {
++  std::array<uint8_t, 1024> first;
++  first.fill(255);
++  auto second = first;
++  const auto info = RgbaInfo(16, 16);
++  ApplyVesperCanvasReadbackProtection(SkPixmap(info, first.data(), 64),
++                                    0, 0, kSeed);
++  ApplyVesperCanvasReadbackProtection(SkPixmap(info, second.data(), 64),
++                                    0, 0, kSeed + 1);
++  EXPECT_NE(first, second);
++}
++
++TEST(VesperCanvasReadbackTest, Float16RemainsExplicitlyUnsupported) {
++  std::array<uint16_t, 8> pixels;
++  pixels.fill(0x3c00);
++  const auto original = pixels;
++  const SkImageInfo info = SkImageInfo::Make(
++      2, 1, kRGBA_F16_SkColorType, kUnpremul_SkAlphaType);
++  const SkPixmap source(info, pixels.data(), info.minRowBytes());
++  EXPECT_FALSE(IsVesperCanvasReadbackFormat(source));
++  ApplyVesperCanvasReadbackProtection(source, 0, 0, kSeed);
++  EXPECT_EQ(pixels, original);
++  EXPECT_FALSE(CreateVesperCanvasReadbackImage(source, kSeed));
++}
++
++TEST(VesperCanvasReadbackTest, ExportCopyPreservesBackingAndMatchesReadback) {
++  // BGRA input exercises the native export color conversion path.
++  std::array<uint8_t, 16> source_bytes = {
++      200, 100, 50, 255, 40, 60, 80, 255,
++      70, 90, 110, 255, 120, 140, 160, 255};
++  const auto original = source_bytes;
++  const SkImageInfo source_info = SkImageInfo::Make(
++      2, 2, kBGRA_8888_SkColorType, kUnpremul_SkAlphaType);
++  const SkPixmap source(source_info, source_bytes.data(), 8);
++  std::array<uint8_t, 16> expected;
++  ASSERT_TRUE(source.readPixels(RgbaInfo(2, 2), expected.data(), 8, 0, 0));
++  ApplyVesperCanvasReadbackProtection(
++      SkPixmap(RgbaInfo(2, 2), expected.data(), 8), 0, 0, kSeed);
++  auto protected_image = CreateVesperCanvasReadbackImage(source, kSeed);
++  ASSERT_TRUE(protected_image);
++  SkPixmap protected_pixels;
++  ASSERT_TRUE(protected_image->peekPixels(&protected_pixels));
++  EXPECT_EQ(source_bytes, original);
++  EXPECT_NE(protected_pixels.addr(), source.addr());
++  EXPECT_EQ(protected_pixels.colorType(), kRGBA_8888_SkColorType);
++  EXPECT_EQ(protected_pixels.alphaType(), kUnpremul_SkAlphaType);
++  const auto bytes = gfx::SkPixmapToSpan(protected_pixels);
++  ASSERT_EQ(bytes.size(), expected.size());
++  for (size_t i = 0; i < bytes.size(); ++i) {
++    EXPECT_EQ(bytes[i], expected[i]);
++  }
++  // A second export independently copies the pristine backing pixels.
++  auto second_image = CreateVesperCanvasReadbackImage(source, kSeed);
++  ASSERT_TRUE(second_image);
++  SkPixmap second_pixels;
++  ASSERT_TRUE(second_image->peekPixels(&second_pixels));
++  EXPECT_EQ(gfx::SkPixmapToSpan(second_pixels), bytes);
++}
++
++TEST(VesperCanvasReadbackTest, PremultipliedExportMatchesUnpremultipliedReadback) {
++  // Rendering storage is normally premultiplied; preserve conversion rounding
++  // by using the same native readPixels contract before applying the policy.
++  std::array<uint8_t, 8> pixels = {10, 20, 30, 127, 0, 0, 0, 0};
++  const auto original = pixels;
++  const SkImageInfo source_info = SkImageInfo::Make(
++      2, 1, kRGBA_8888_SkColorType, kPremul_SkAlphaType);
++  const SkPixmap source(source_info, pixels.data(), 8);
++  std::array<uint8_t, 8> expected;
++  ASSERT_TRUE(source.readPixels(RgbaInfo(2, 1), expected.data(), 8, 0, 0));
++  ApplyVesperCanvasReadbackProtection(
++      SkPixmap(RgbaInfo(2, 1), expected.data(), 8), 0, 0, kSeed);
++  auto image = CreateVesperCanvasReadbackImage(source, kSeed);
++  ASSERT_TRUE(image);
++  SkPixmap readback;
++  ASSERT_TRUE(image->peekPixels(&readback));
++  const auto bytes = gfx::SkPixmapToSpan(readback);
++  ASSERT_EQ(bytes.size(), expected.size());
++  for (size_t i = 0; i < expected.size(); ++i) {
++    EXPECT_EQ(bytes[i], expected[i]);
++  }
++  EXPECT_EQ(bytes[3], 127);
++  EXPECT_EQ(bytes[4], 0);
++  EXPECT_EQ(bytes[5], 0);
++  EXPECT_EQ(bytes[6], 0);
++  EXPECT_EQ(bytes[7], 0);
++  EXPECT_EQ(pixels, original);
++}
++
++TEST(VesperCanvasReadbackTest, OpaqueExportMaterializesAlphaWithoutMutatingSource) {
++  std::array<uint8_t, 8> pixels = {20, 40, 60, 0, 100, 120, 140, 7};
++  const auto original = pixels;
++  const SkImageInfo info = SkImageInfo::Make(
++      2, 1, kRGBA_8888_SkColorType, kOpaque_SkAlphaType);
++  auto image = CreateVesperCanvasReadbackImage(
++      SkPixmap(info, pixels.data(), 8), kSeed);
++  ASSERT_TRUE(image);
++  SkPixmap readback;
++  ASSERT_TRUE(image->peekPixels(&readback));
++  const auto bytes = gfx::SkPixmapToSpan(readback);
++  EXPECT_EQ(bytes[3], 255);
++  EXPECT_EQ(bytes[7], 255);
++  EXPECT_EQ(pixels, original);
++  for (size_t i : {0u, 1u, 2u, 4u, 5u, 6u}) {
++    EXPECT_LE(std::abs(static_cast<int>(bytes[i]) -
++                       static_cast<int>(original[i])), 1);
++  }
++}
++
++}  // namespace
++}  // namespace blink

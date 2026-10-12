@@ -1,0 +1,23 @@
+{
+  "origins": {
+    "owned": "https://owned.test"
+  },
+  "profilePolicyIds": [
+    "owned-fixture-profile"
+  ],
+  "proxyPolicyIds": [
+    "owned-fixture-direct"
+  ],
+  "identityResolvers": [
+    "owned-session-receipt"
+  ],
+  "reconciliationResolvers": [],
+  "safeRepeatTargets": [
+    "username",
+    "password"
+  ],
+  "safeNavigationPaths": [
+    "owned:/signin"
+  ],
+  "identityPolicy": "required"
+}

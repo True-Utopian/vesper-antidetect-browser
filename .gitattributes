@@ -1,0 +1,3 @@
+native/chromium/patches/*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof
+docs/assets/*.svg text eol=lf
+docs/status.md text eol=lf

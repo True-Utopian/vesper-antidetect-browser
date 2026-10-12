@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240" role="img" aria-labelledby="brand-title brand-desc">
+<title id="brand-title">Vesper by true-utopian</title><desc id="brand-desc">An independent browser workspace with an optional automation workbench. Original night moth identity.</desc>
+<rect width="1200" height="240" rx="16" fill="#181e23"/>
+<svg x="40" y="48" width="144" height="144" viewBox="0 0 64 64">
+  <title id="title">Vesper night moth</title>
+  <rect width="64" height="64" rx="16" fill="#1c302e"/>
+  <path d="M45 8a25 25 0 1 0 12 33A23 23 0 0 1 45 8Z" fill="#35534f"/>
+  <path d="M30 31C23 17 13 15 7 20c2 10 10 18 22 18Z" fill="#b8e1d5"/>
+  <path d="M34 31c7-14 17-16 23-11-2 10-10 18-22 18Z" fill="#87c6b7"/>
+  <path d="M29 39c-9-4-16 0-14 9 8 0 13-3 16-8Z" fill="#d9b885"/>
+  <path d="M35 39c9-4 16 0 14 9-8 0-13-3-16-8Z" fill="#c6a375"/>
+  <path d="M32 26c-3 0-4 3-3 7l2 13c.2 2 1.8 2 2 0l2-13c1-4 0-7-3-7Z" fill="#f0eee5"/>
+  <path d="M31 27c-1-4-3-6-6-7m8 7c1-4 3-6 6-7" fill="none" stroke="#f0eee5" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="m51 7 1.5 3.5L56 12l-3.5 1.5L51 17l-1.5-3.5L46 12l3.5-1.5Z" fill="#e2be87"/>
+</svg>
+<g font-family="Segoe UI,Arial,sans-serif"><text x="216" y="108" font-size="55" font-weight="650" letter-spacing="-2" fill="#eaf0ed">Vesper</text><text x="218" y="144" font-size="18" fill="#a0b3b2">Independent profiles. Repeatable workflows.</text><text x="218" y="180" font-size="14" fill="#d1b181">by true-utopian</text>
+<path d="M815 62v116" stroke="#364744"/><text x="850" y="94" font-size="18" font-weight="600" fill="#b8e1d5">Browser</text><text x="850" y="118" font-size="14" fill="#a3afb6">Your local profile workspace</text><text x="850" y="152" font-size="18" font-weight="600" fill="#e2be87">Workbench</text><text x="850" y="176" font-size="14" fill="#a3afb6">Automation, added as a plug-in</text></g></svg>

@@ -1,0 +1,66 @@
+# Chromium native canvas readback
+
+Research and original implementation by **true-utopian**, 11 October 2026. Source is pinned to Chromium [`4afca57b57f531a92ffc15af0ffb5cf0038fb273`](https://github.com/chromium/chromium/tree/4afca57b57f531a92ffc15af0ffb5cf0038fb273), version `157.0.8100.0`. Its DEPS pins Skia to [`0c1d93abfa046c8788db91d50b3c57229a6758ba`](https://github.com/google/skia/tree/0c1d93abfa046c8788db91d50b3c57229a6758ba). This is ordinary analysis of complete upstream source, following REA's source-available boundary; no vendor implementation is used.
+
+The original patch is [0002-native-canvas.patch](../../native/chromium/patches/0002-native-canvas.patch). It prepares a deterministic profile policy in native Blink code and covers supported 8-bit Canvas2D reads and exports. Patch applicability and source/API review are verified. Compilation, native tests, browser execution, compatibility and performance are still pending. **This document does not establish a functioning or complete fingerprint protection engine.**
+
+## Exact native boundaries
+
+| Route | Pinned upstream function and anchor | Consequence for the patch |
+| --- | --- | --- |
+| Canvas2D `getImageData` | [`BaseRenderingContext2D::getImageDataInternal`, line 716; output read at 866](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc#L716) | Existing bounds, taint, layer, allocation and context-loss behavior runs first. Apply the policy only after successful native readPixels into the new ImageData allocation. |
+| OffscreenCanvas 2D, including workers | [`OffscreenCanvasRenderingContext2D` inherits the same base, line 28](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/modules/canvas/offscreencanvas2d/offscreen_canvas_rendering_context_2d.h#L28) | The common readback hook covers this context too; renderer seed delivery must precede worker startup. |
+| ImageData output format | [`ImageData::GetSkPixmap`, line 364](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/core/html/canvas/image_data.cc#L364) | Output exposes unpremultiplied pixels and a chosen pixel format/color space. The initial policy changes RGBA8 only. |
+| HTML canvas synchronous export | [`HTMLCanvasElement::ToDataURLInternal`, line 1425](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc#L1425) | Snapshot is followed by ImageDataBuffer creation and encoding. Replace this canvas-specific creation call with an explicit protected-copy factory. Keep generic Snapshot intact. |
+| HTML canvas asynchronous export | [`HTMLCanvasElement::toBlob`, line 1499](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc#L1499) | The snapshot is sent to CanvasAsyncBlobCreator. |
+| Offscreen asynchronous export | [`OffscreenCanvas::convertToBlob`, line 543](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.cc#L543) | It uses the same CanvasAsyncBlobCreator, including the worker route. |
+| Shared blob pixel handoff | [`CanvasAsyncBlobCreator` constructor; peekPixels at line 215](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc#L157) | Before pixels are exposed to progressive, immediate or encoder-thread execution, replace the source with a newly owned protected image and retain its lifetime. |
+| Generic encoding buffer | [`ImageDataBuffer` constructor, line 48](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/platform/graphics/image_data_buffer.cc#L48) | Its fast path may retain a shared image. Mutating that pixmap would alter shared content. Video/accessibility callers also use this helper, so masking is explicit and canvas-only. |
+| Native encoder representation | [`ImageEncoderUtils::GetColorInfoForEncoder`, line 58](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/platform/image-encoders/image_encoder_utils.cc#L58) | Encoder preparation selects unpremultiplied alpha and may preserve float color formats. Converting an 8-bit export copy to RGBA8 keeps one consistent byte layout for masking. |
+
+SkPixmap does not own its pixel memory. Its [`readPixels` conversion interface](https://github.com/google/skia/blob/0c1d93abfa046c8788db91d50b3c57229a6758ba/include/core/SkPixmap.h#L535) can copy BGRA8/premultiplied pixels into RGBA8/unpremultiplied output. Opaque-alpha conversion requires special handling: copy with opaque metadata, then materialize alpha 255 in the private buffer. [`SkImages::RasterFromData`](https://github.com/google/skia/blob/0c1d93abfa046c8788db91d50b3c57229a6758ba/include/core/SkImage.h#L182) shares an owned SkData allocation, so the returned SkImage retains the copy. No patch step writes to an immutable image's shared pixels.
+
+The patch accesses pixels through Chromium's existing [`gfx::SkPixmapToWritableSpan`](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/ui/gfx/skia_span_util.cc#L25). Row padding is excluded from each row view; source dimensions and minimum stride are checked before processing.
+
+## Original policy contract
+
+- One browser process belongs to one Vesper profile. The browser forwards `vesper-canvas-seed` to every renderer through the accompanying scalar-policy patch. There is no per-execution-context IPC policy in this patch; a future shared browser with multiple profiles needs different transport.
+- The seed is exactly 16 ASCII hexadecimal digits, representing all 64 bits. Zero is a valid enabled seed. Missing, short, prefixed, signed, whitespace-containing and otherwise invalid values disable the policy and preserve upstream behavior. Parsing does not use a mutable page setting or JavaScript injection.
+- The immutable parsed startup seed is cached once per renderer process, including worker callers, so hot readbacks do not repeatedly allocate/parse switch strings. A separate pure parser supports native tests without mutating the cached production policy. Changing a profile policy requires restarting its browser/renderers.
+- The host persists the seed in the profile's native policy file before launching the browser, restores it with archives and retains it across restarts. It must avoid accidental seed reuse when creating an independent profile. That persistence belongs to host integration and is not implemented in this C++ patch.
+- The transformation uses the seed, absolute canvas x/y coordinates and RGB channel bits. Replacing each RGB byte's low bit changes it by at most one. The same baseline drawing and seed produce the same result across full/subrect reads, windows and workers. Int64 coordinate arithmetic avoids intermediate signed-int overflow for normalized read origins.
+- Alpha stays unchanged. Completely transparent pixels, including out-of-bounds zero-fill, remain untouched. Empty/context-lost/failed readbacks retain upstream behavior. Repeated reads copy the same canvas backing, and reapplying the transformation to the same buffer is idempotent.
+- Exports create a fresh RGBA8/unpremultiplied image, apply the same transformation at canvas origin `(0, 0)`, and retain that image through encoding. A supported enabled export that cannot create its private copy fails rather than silently encoding the pristine source.
+
+For partially out-of-bounds reads, upstream normalizes negative widths/heights and retains the original normalized read origin while clipping the copied pixels; the hook uses that origin, so each nontransparent returned pixel receives its absolute canvas coordinate. Zero-filled clipped pixels stay unchanged. The export copy preserves the source color space. Default ImageData uses the canvas color space through [`GetDefaultImageDataColorSpace`](https://github.com/chromium/chromium/blob/4afca57b57f531a92ffc15af0ffb5cf0038fb273/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.h#L342). Explicitly requesting sRGB ImageData from a display-p3 canvas introduces a legitimate native conversion, so equality against a display-p3 export must not be asserted without matching color spaces.
+
+The integer mixer is deliberately described as a deterministic prototype, **not a cryptographic privacy primitive**. A coordinate-only low-bit pattern can be learned using chosen drawings and introduces a profile-stable observable signal. It does not remove information carried by the remaining color bits or prove resistance to fingerprinting. Origin partitioning, a reviewed keyed construction, content-sensitive attacks and correlations with other surfaces need a separate design and evaluation. The policy currently stays identical across origins to satisfy profile/worker consistency; that tradeoff must be visible in product claims.
+
+## Coverage and omissions
+
+| Surface | Patch scope | Proof still required |
+| --- | --- | --- |
+| Canvas2D RGBA8 `getImageData` | Shared native hook | Built browser, CPU/GPU drawing paths, taint/layer/context-loss behavior |
+| OffscreenCanvas 2D RGBA8 `getImageData` | Same hook | Window, dedicated/shared/service worker contexts, transferred canvas, early startup |
+| RGBA8/BGRA8 `toDataURL` | Explicit native private copy | Decoded PNG bytes equal same-color-space getImageData |
+| RGBA8/BGRA8 `toBlob` and `convertToBlob` | Shared private source image | Progressive, immediate and encoder-thread paths; decoded PNG equality |
+| JPEG/WebP export preparation | Same 8-bit protected input copy | Correctness and compatibility; lossy decoded bytes need not equal input pixels |
+| Float16/float32 ImageData and float-backed export | Unchanged; unsupported | A format-aware transformation and coherent export policy |
+| WebGL/WebGPU direct pixel/buffer readback | Unchanged; unsupported | Separate native readback boundaries; 8-bit canvas export masking does not protect these direct APIs |
+| Text metrics, fonts, audio, graphics strings, image/canvas transfer APIs, screenshots and other native signals | Outside this patch | Separate policies and tests |
+
+This patch does not make a complete native canvas protection claim while unsupported formats/direct readback routes remain available. Runtime equivalence applies only to lossless PNG exports of the same original 8-bit drawing in the same color space. A site writing the returned ImageData back to a canvas changes that canvas through the normal API; the readback hook itself does not modify it.
+
+## Verification and release gates
+
+The patch includes nine original native unit tests in `vesper_canvas_readback_test.cc`, registered with the Blink platform unit-test source list. They cover strict seed parsing (including zero), unchanged alpha/transparent RGB/row padding, repeated and idempotent reads, overlapping absolute coordinates with negative origins, distinct profile seeds, explicit float16 exclusion, a BGRA private export copy matching the readback representation, premultiplied partial-alpha export conversion, and opaque export alpha without source mutation. These tests are authored but have not been compiled or executed yet.
+
+Before enabling a supported capability claim:
+
+1. Build the exact patched Chromium revision and run `blink_platform_unittests --gtest_filter=VesperCanvasReadbackTest.*`. Run relevant upstream Canvas2D and canvas serialization tests with no seed to prove the default path is unchanged.
+2. Launch only owned synthetic profiles. Observe identical lossless PNG/readback bytes across main frame, child frame and window/worker OffscreenCanvas, including first-script execution and both accelerated/unaccelerated canvas paths. Decode exports externally so a second canvas readback transformation cannot hide a mismatch.
+3. Check `toDataURL`, callback `toBlob`, window/worker `convertToBlob`, repeated calls and restart/archive restore for the same profile; check another seed changes an opaque synthetic drawing. Test opaque/partial/zero alpha, out-of-bounds and negative-size reads, RGBA8/BGRA8 sources, color spaces, very small/large dimensions and row strides.
+4. Exercise copy allocation/conversion failure and GPU/context loss, ensuring supported export failure never falls back to pristine bytes. Retain tainted-canvas and open-layer error behavior. Include a float-format/direct-WebGL probe that records the remaining bypass explicitly.
+5. Measure readback latency and peak memory on small and large canvases, with the policy disabled/enabled. The patch adds an O(pixel count) pass and a fresh RGBA export allocation; no performance improvement is claimed.
+
+`git apply --check` succeeds against the pinned source checkout without changing it. This establishes patch applicability, not a successful native build or runtime behavior. Native build diagnostics and the browser proof fixture must resolve the remaining release gates before changing status from experimental.

@@ -1,0 +1,22 @@
+{
+  "name": "Vesper native kernel",
+  "author": "true-utopian",
+  "schemaVersion": 1,
+  "upstream": "https://chromium.googlesource.com/chromium/src.git",
+  "revision": "4afca57b57f531a92ffc15af0ffb5cf0038fb273",
+  "chromiumVersion": "157.0.8100.0",
+  "patches": ["0001-native-scalars.patch", "0002-native-canvas.patch"],
+  "gnArgs": {
+    "is_debug": false,
+    "is_component_build": true,
+    "symbol_level": 0,
+    "blink_symbol_level": 0,
+    "v8_symbol_level": 0,
+    "chrome_pgo_phase": 0,
+    "use_remoteexec": false,
+    "is_official_build": false,
+    "target_cpu": "x64"
+  },
+  "qualification": "scripts/qualify-native-kernel.mjs",
+  "status": "source-development"
+}

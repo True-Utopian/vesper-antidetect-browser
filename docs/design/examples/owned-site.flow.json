@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "id": "owned-account-signin",
+  "version": "1.1.0",
+  "title": "Owned-site sign-in with an explicit verification choice",
+  "registry": {
+    "schemaVersion": 1,
+    "id": "owned-account-states",
+    "version": "1.0.0",
+    "originRefs": [
+      "owned"
+    ],
+    "targets": {
+      "app": {
+        "selector": "[data-test=owned-app]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "signin-form": {
+        "selector": "form[data-test=signin]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "username": {
+        "selector": "[data-test=signin] input[name=username]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "password": {
+        "selector": "[data-test=signin] input[name=password]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "signin-submit": {
+        "selector": "[data-test=signin] button[type=submit]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "method-list": {
+        "selector": "[data-test=verification-methods]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "code-form": {
+        "selector": "form[data-test=verify-code]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "code": {
+        "selector": "[data-test=verify-code] input[name=code]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "code-submit": {
+        "selector": "[data-test=verify-code] button[type=submit]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "error": {
+        "selector": "[data-test=auth-error]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "account": {
+        "selector": "[data-test=account-home]",
+        "frame": "main",
+        "cardinality": "one"
+      },
+      "account-label": {
+        "selector": "[data-test=account-label]",
+        "frame": "main",
+        "cardinality": "one"
+      }
+    },
+    "states": {
+      "app-shell": {
+        "title": "Owned application shell",
+        "actionable": false,
+        "require": [
+          {
+            "op": "visible",
+            "target": "app"
+          }
+        ],
+        "forbid": [],
+        "support": [],
+        "minEvidenceScore": 1
+      },
+      "signin": {
+        "title": "Sign in",
+        "actionable": true,
+        "refines": [
+          "app-shell"
+        ],
+        "require": [
+          {
+            "op": "urlEquals",
+            "originRef": "owned",
+            "pathname": "/signin"
+          },
+          {
+            "op": "visible",
+            "target": "signin-form"
+          },
+          {
+            "op": "visible",
+            "target": "username"
+          },
+          {
+            "op": "visible",
+            "target": "password"
+          },
+          {
+            "op": "enabled",
+            "target": "signin-submit"
+          }
+        ],
+        "forbid": [
+          {
+            "op": "visible",
+            "target": "method-list"
+          },
+          {
+            "op": "visible",
+            "target": "code-form"
+          },
+          {
+            "op": "visible",
+            "target": "error"
+          }
+        ],
+        "support": [
+          {
+            "id": "explicit-ready",
+            "predicate": {
+              "op": "attributeEquals",
+              "target": "signin-form",
+              "name": "data-ready",
+              "equals": "true"
+            },
+            "weight": 1
+          }
+        ],
+        "minEvidenceScore": 1
+      },
+      "choose-method": {
+        "title": "Choose verification method",
+        "actionable": true,
+        "refines": [
+          "app-shell"
+        ],
+        "require": [
+          {
+            "op": "urlEquals",
+            "originRef": "owned",
+            "pathname": "/verify/method"
+          },
+          {
+            "op": "visible",
+            "target": "method-list"
+          }
+        ],
+        "forbid": [
+          {
+            "op": "visible",
+            "target": "error"
+          }
+        ],
+        "support": [],
+        "minEvidenceScore": 1
+      },
+      "enter-code": {
+        "title": "Enter verification code",
+        "actionable": true,
+        "refines": [
+          "app-shell"
+        ],
+        "require": [
+          {
+            "op": "urlEquals",
+            "originRef": "owned",
+            "pathname": "/verify/code"
+          },
+          {
+            "op": "visible",
+            "target": "code-form"
+          },
+          {
+            "op": "visible",
+            "target": "code"
+          },
+          {
+            "op": "enabled",
+            "target": "code-submit"
+          }
+        ],
+        "forbid": [
+          {
+            "op": "visible",
+            "target": "error"
+          }
+        ],
+        "support": [],
+        "minEvidenceScore": 1
+      },
+      "auth-error": {
+        "title": "Authentication needs review",
+        "actionable": false,
+        "refines": [
+          "app-shell"
+        ],
+        "require": [
+          {
+            "op": "visible",
+            "target": "error"
+          }
+        ],
+        "forbid": [],
+        "support": [],
+        "minEvidenceScore": 1
+      },
+      "account-home": {
+        "title": "Account page confirmed",
+        "actionable": true,
+        "refines": [
+          "app-shell"
+        ],
+        "require": [
+          {
+            "op": "urlEquals",
+            "originRef": "owned",
+            "pathname": "/account"
+          },
+          {
+            "op": "visible",
+            "target": "account"
+          },
+          {
+            "op": "attributeEquals",
+            "target": "account",
+            "name": "data-authenticated",
+            "equals": "true"
+          },
+          {
+            "op": "visible",
+            "target": "account-label"
+          }
+        ],
+        "forbid": [
+          {
+            "op": "visible",
+            "target": "error"
+          }
+        ],
+        "support": [],
+        "minEvidenceScore": 1
+      }
+    },
+    "policy": {
+      "sampleIntervalMs": 150,
+      "observationTimeoutMs": 1000,
+      "maxObservationAgeMs": 500,
+      "stableSamples": 2,
+      "stableForMs": 150,
+      "blankGraceMs": 2000,
+      "unknownTimeoutMs": 15000,
+      "overlap": "abstain-unless-refinement"
+    }
+  },
+  "inputSchema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "username",
+      "password"
+    ],
+    "properties": {
+      "username": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 150,
+        "writeOnly": true
+      },
+      "password": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300,
+        "writeOnly": true
+      }
+    }
+  },
+  "start": {
+    "originRef": "owned",
+    "pathname": "/signin"
+  },
+  "limits": {
+    "maxSteps": 20,
+    "maxTotalMs": 300000,
+    "maxStateVisits": 8,
+    "maxInputRequests": 4,
+    "maxReconciliations": 2
+  },
+  "entryByState": {
+    "signin": "fill-username",
+    "choose-method": "ask-method",
+    "enter-code": "ask-code",
+    "account-home": "scrape-account-label"
+  },
+  "choices": {
+    "verification-methods": {
+      "states": [
+        "choose-method"
+      ],
+      "container": "method-list",
+      "optionSelector": "button[data-choice-id]",
+      "keyAttribute": "data-choice-id",
+      "labelAttribute": "data-choice-label",
+      "maxOptions": 3,
+      "ttlMs": 60000,
+      "onStale": "ask-method",
+      "patterns": [
+        {
+          "id": "email-method",
+          "type": "email",
+          "match": {
+            "keyEquals": "email"
+          },
+          "supported": true,
+          "availableWhen": [
+            {
+              "attribute": "data-available",
+              "equals": "true"
+            }
+          ],
+          "unavailableReason": "Email verification is currently unavailable."
+        },
+        {
+          "id": "authenticator-method",
+          "type": "authenticator",
+          "match": {
+            "keyEquals": "authenticator"
+          },
+          "supported": true,
+          "availableWhen": [
+            {
+              "attribute": "data-available",
+              "equals": "true"
+            }
+          ],
+          "unavailableReason": "Authenticator verification is currently unavailable."
+        },
+        {
+          "id": "sms-method",
+          "type": "sms",
+          "match": {
+            "keyPattern": "^sms-[a-z0-9-]+$"
+          },
+          "supported": false,
+          "availableWhen": [],
+          "unavailableReason": "This flow does not support SMS verification."
+        }
+      ],
+      "onAllUnavailable": "no-methods"
+    }
+  },
+  "steps": {
+    "fill-username": {
+      "kind": "action",
+      "requires": [
+        "signin"
+      ],
+      "do": {
+        "op": "fill",
+        "target": "username",
+        "value": {
+          "source": "input",
+          "key": "username"
+        }
+      },
+      "postcondition": {
+        "states": [
+          "signin"
+        ],
+        "require": [],
+        "timeoutMs": 3000
+      },
+      "next": {
+        "signin": "fill-password"
+      },
+      "retry": {
+        "mode": "safe-repeat",
+        "maxAttempts": 2,
+        "backoffMs": 200,
+        "justification": "Owned fixture field only; replacing text never submits or autosaves."
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "fill-password": {
+      "kind": "action",
+      "requires": [
+        "signin"
+      ],
+      "do": {
+        "op": "fill",
+        "target": "password",
+        "value": {
+          "source": "input",
+          "key": "password"
+        }
+      },
+      "postcondition": {
+        "states": [
+          "signin"
+        ],
+        "require": [],
+        "timeoutMs": 3000
+      },
+      "next": {
+        "signin": "submit-signin"
+      },
+      "retry": {
+        "mode": "safe-repeat",
+        "maxAttempts": 2,
+        "backoffMs": 200,
+        "justification": "Owned fixture field only; replacing text never submits or autosaves."
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "submit-signin": {
+      "kind": "action",
+      "requires": [
+        "signin"
+      ],
+      "do": {
+        "op": "click",
+        "target": "signin-submit",
+        "effect": "mutation"
+      },
+      "postcondition": {
+        "states": [
+          "choose-method",
+          "enter-code",
+          "account-home"
+        ],
+        "require": [],
+        "timeoutMs": 15000
+      },
+      "next": {
+        "choose-method": "ask-method",
+        "enter-code": "ask-code",
+        "account-home": "scrape-account-label"
+      },
+      "retry": {
+        "mode": "never",
+        "maxAttempts": 1
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "ask-method": {
+      "kind": "input",
+      "requires": [
+        "choose-method"
+      ],
+      "title": "Choose a verification method",
+      "answerKey": "method",
+      "input": {
+        "kind": "choice",
+        "choiceSource": "verification-methods"
+      },
+      "timeoutMs": 90000,
+      "next": {
+        "choose-method": "select-method"
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "select-method": {
+      "kind": "action",
+      "requires": [
+        "choose-method"
+      ],
+      "do": {
+        "op": "chooseOption",
+        "choiceSource": "verification-methods",
+        "answerKey": "method"
+      },
+      "postcondition": {
+        "states": [
+          "enter-code"
+        ],
+        "require": [],
+        "timeoutMs": 15000
+      },
+      "next": {
+        "enter-code": "ask-code"
+      },
+      "retry": {
+        "mode": "never",
+        "maxAttempts": 1
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "ask-code": {
+      "kind": "input",
+      "requires": [
+        "enter-code"
+      ],
+      "title": "Enter the current code from your test account",
+      "answerKey": "code",
+      "input": {
+        "kind": "text",
+        "secret": true,
+        "minLength": 6,
+        "maxLength": 6
+      },
+      "timeoutMs": 90000,
+      "next": {
+        "enter-code": "fill-code"
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "fill-code": {
+      "kind": "action",
+      "requires": [
+        "enter-code"
+      ],
+      "do": {
+        "op": "fill",
+        "target": "code",
+        "value": {
+          "source": "answer",
+          "key": "code"
+        }
+      },
+      "postcondition": {
+        "states": [
+          "enter-code"
+        ],
+        "require": [],
+        "timeoutMs": 3000
+      },
+      "next": {
+        "enter-code": "submit-code"
+      },
+      "retry": {
+        "mode": "never",
+        "maxAttempts": 1
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "submit-code": {
+      "kind": "action",
+      "requires": [
+        "enter-code"
+      ],
+      "do": {
+        "op": "click",
+        "target": "code-submit",
+        "effect": "mutation"
+      },
+      "postcondition": {
+        "states": [
+          "account-home"
+        ],
+        "require": [],
+        "timeoutMs": 15000
+      },
+      "next": {
+        "account-home": "scrape-account-label"
+      },
+      "retry": {
+        "mode": "never",
+        "maxAttempts": 1
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {
+        "account-home": "scrape-account-label"
+      }
+    },
+    "finish": {
+      "kind": "complete",
+      "requires": [
+        "account-home"
+      ],
+      "mode": "await-operator-then-save",
+      "identityReceipt": "authenticated-account"
+    },
+    "scrape-account-label": {
+      "kind": "action",
+      "requires": [
+        "account-home"
+      ],
+      "postcondition": {
+        "states": [
+          "account-home"
+        ],
+        "require": [],
+        "timeoutMs": 3000
+      },
+      "retry": {
+        "mode": "never",
+        "maxAttempts": 1
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {},
+      "do": {
+        "op": "scrape",
+        "target": "account-label",
+        "read": {
+          "kind": "text"
+        },
+        "outputKey": "account-label",
+        "sensitivity": "sensitive",
+        "maxLength": 150
+      },
+      "next": {
+        "account-home": "bind-identity"
+      }
+    },
+    "bind-identity": {
+      "kind": "action",
+      "requires": [
+        "account-home"
+      ],
+      "postcondition": {
+        "states": [
+          "account-home"
+        ],
+        "require": [],
+        "timeoutMs": 3000
+      },
+      "retry": {
+        "mode": "never",
+        "maxAttempts": 1
+      },
+      "onError": "review",
+      "onTimeout": "review",
+      "onUncertain": "review",
+      "recoveryByState": {},
+      "do": {
+        "op": "bindIdentity",
+        "resolver": "owned-session-receipt",
+        "expected": {
+          "source": "input",
+          "key": "username"
+        },
+        "receiptKey": "authenticated-account"
+      },
+      "next": {
+        "account-home": "finish"
+      }
+    },
+    "review": {
+      "kind": "review",
+      "requires": [
+        "unknown",
+        "app-shell",
+        "auth-error",
+        "signin",
+        "choose-method",
+        "enter-code",
+        "account-home"
+      ],
+      "title": "Review the current browser before continuing",
+      "reasonCode": "flow-needs-review",
+      "timeoutMs": 90000,
+      "recoveryByState": {
+        "signin": "fill-username",
+        "choose-method": "ask-method",
+        "enter-code": "ask-code",
+        "account-home": "scrape-account-label"
+      }
+    },
+    "no-methods": {
+      "kind": "review",
+      "requires": [
+        "choose-method"
+      ],
+      "title": "No supported verification method is available",
+      "reasonCode": "all-options-unavailable",
+      "timeoutMs": 90000,
+      "recoveryByState": {
+        "choose-method": "ask-method",
+        "account-home": "scrape-account-label"
+      }
+    }
+  },
+  "onUnexpected": "pause-for-review",
+  "evidence": {
+    "mode": "structured-redacted",
+    "screenshots": "off",
+    "retentionDays": 7
+  },
+  "execution": {
+    "profilePolicyId": "owned-fixture-profile",
+    "proxyPolicyId": "owned-fixture-direct"
+  },
+  "onUnexpectedStep": "review",
+  "identityPolicy": "required"
+}
