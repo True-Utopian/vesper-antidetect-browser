@@ -26,12 +26,12 @@ export async function nativeExecutableHash(file: string) {
 }
 
 export interface NativeRuntimeFile { path: string; sha256: string }
-/** Component builds enforce policy in DLLs, so checking only chrome.exe is insufficient. */
+/** Component builds enforce policy in shared libraries, so checking only the launcher is insufficient. */
 export async function nativeRuntimeInventory(executable: string): Promise<NativeRuntimeFile[]> {
   const root = dirname(await realpath(executable));
   const files = new Set([basename(executable)]);
   for (const entry of await readdir(root, { withFileTypes: true })) {
-    if (entry.isFile() && /\.(dll|pak|bin)$/i.test(entry.name)) files.add(entry.name);
+    if ((entry.isFile() || entry.isSymbolicLink()) && /(?:\.(dll|pak|bin)|\.so(?:\.[0-9]+)*)$/i.test(entry.name)) files.add(entry.name);
   }
   try {
     for (const entry of await readdir(join(root, 'locales'), { withFileTypes: true })) {
