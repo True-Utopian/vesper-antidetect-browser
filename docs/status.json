@@ -232,8 +232,8 @@
         {
           "id": "browser-browser-inventory-editor",
           "name": "Browser inventory editor",
-          "state": "source_tested",
-          "evidence": "docs/proxy-inventory.md"
+          "state": "verified",
+          "evidence": "docs/validation.md"
         },
         {
           "id": "browser-rotation-workflow",
