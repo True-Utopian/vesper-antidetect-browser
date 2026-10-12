@@ -103,6 +103,8 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
       if (url.pathname === '/api/fingerprint/capabilities' && request.method === 'GET') { json(response, 200, fingerprintCapabilities); return; }
       if (url.pathname === '/api/engine/versions' && request.method === 'GET') { json(response,200,await browser.engineVersions()); return; }
       if(url.pathname==='/api/extensions' && request.method==='GET'){json(response,200,await browser.extensions());return;}
+      const extension = /^\/api\/extensions\/([a-f0-9]{64})$/.exec(url.pathname);
+      if(extension && request.method==='DELETE'){json(response,200,await browser.removeExtension(extension[1]!));return;}
       if(url.pathname==='/api/extensions/import' && request.method==='POST'){
         if(request.headers['content-type']?.split(';')[0]!=='application/zip')throw error(415,'Upload an unpacked extension ZIP as application/zip');
         if(Number(request.headers['content-length']??0)>40*1024**2){request.resume();throw error(413,'Extension ZIP exceeds 40 MiB');}

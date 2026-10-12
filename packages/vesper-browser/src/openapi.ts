@@ -29,6 +29,7 @@ const paths: Record<string, unknown> = {
 };
 for (const action of ['start', 'stop', 'install', 'duplicate','trash','restore']) paths[`/profiles/{id}/${action}`] = { post: operation(`${action} profile`, [id, lease], undefined, action === 'duplicate' ? 201 : 200) };
 paths['/extensions']={get:operation('List immutable imported Manifest V3 extension packages and permissions')};
+paths['/extensions/{packageId}']={delete:operation('Remove an unassigned catalog package; assigned profiles including trash block removal. Profile copies and storage are preserved.',[{name:'packageId',in:'path',required:true,schema:{type:'string',pattern:'^[a-f0-9]{64}$'}}])};
 paths['/extensions/import']={post:operation('Import a local extension ZIP, maximum 40 MiB compressed and 128 MiB expanded',[],{required:true,content:{'application/zip':{schema:{type:'string',format:'binary'}}}},201)};
 paths['/profiles/{id}/extensions']={get:operation('Read assigned extension versions, including archive-carried packages',[id])};
 paths['/environment/capabilities']={get:operation('Qualified native policies and explicit unsupported fingerprint surfaces')};

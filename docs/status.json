@@ -292,7 +292,7 @@
         {
           "id": "browser-catalog-removal",
           "name": "Catalog removal",
-          "state": "planned",
+          "state": "source_tested",
           "evidence": "docs/extensions.md"
         },
         {

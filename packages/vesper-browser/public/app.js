@@ -302,7 +302,27 @@ async function loadExtensionChoices(profile){
 $('#extensions-view').addEventListener('click',async()=>{
  const {content}=toolPage('Extensions','Import local Manifest V3 packages and assign a version to each profile.','extensions-view');
  const label=element('label','Import extension ZIP'),upload=element('input');upload.type='file';upload.accept='.zip,application/zip';upload.setAttribute('aria-label','Import extension ZIP');label.append(upload);const message=element('p','The ZIP must contain manifest.json at its root. Maximum ZIP size: 40 MiB.','hint'),list=element('div');content.append(label,message,list);
- async function refreshExtensions(){const records=await api('/api/v1/extensions');list.replaceChildren();if(!records.length)list.append(element('p','No extension packages imported yet.'));for(const record of records){const row=element('article',null,'template-item');row.append(element('strong',record.name+' · '+record.version),element('p',record.description||'Local extension package','hint'),element('p','Permissions: '+(record.permissions.join(', ')||'None')+' · Sites: '+(record.hostPermissions.join(', ')||'None'),'hint'),element('p',record.files+' files · '+(record.bytes/1024).toFixed(0)+' KiB','hint'));list.append(row);}}
+ async function refreshExtensions(){
+  const records=await api('/api/v1/extensions');list.replaceChildren();
+  if(!records.length)list.append(element('p','No extension packages imported yet.'));
+  for(const record of records){
+   const row=element('article',null,'template-item'),actions=element('div');
+   row.append(element('strong',record.name+' · '+record.version),element('p',record.description||'Local extension package','hint'),element('p','Permissions: '+(record.permissions.join(', ')||'None')+' · Sites: '+(record.hostPermissions.join(', ')||'None'),'hint'),element('p',record.files+' files · '+(record.bytes/1024).toFixed(0)+' KiB','hint'),actions);
+   const remove=element('button','Remove package');remove.type='button';remove.setAttribute('aria-label','Remove '+record.name+' '+record.version);
+   actions.append(remove);
+   remove.addEventListener('click',()=>{
+    const explanation=element('p','Remove this catalog package? Assigned profiles must be unassigned first. Profile data is kept.','hint'),confirm=element('button','Remove package'),cancel=element('button','Cancel');
+    confirm.type=cancel.type='button';actions.replaceChildren(explanation,confirm,cancel);
+    cancel.addEventListener('click',()=>actions.replaceChildren(remove));
+    confirm.addEventListener('click',async()=>{
+     confirm.disabled=cancel.disabled=true;
+     try{await api('/api/v1/extensions/'+record.id,'DELETE');message.textContent='Removed '+record.name+' '+record.version+' from the catalog.';await refreshExtensions();}
+     catch(error){message.textContent=userMessage(error);actions.replaceChildren(remove);}
+    });
+   });
+   list.append(row);
+  }
+ }
  upload.addEventListener('change',async()=>{const file=upload.files?.[0];if(!file)return;upload.disabled=true;try{if(file.size>40*1024**2)throw new Error('Extension ZIP exceeds 40 MiB');const response=await fetch('/api/v1/extensions/import',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/zip'},body:file});const result=await response.json();if(!response.ok)throw new Error(result.error||'Extension import failed');message.textContent='Imported '+result.name+' '+result.version+'. Assign it in a stopped profile’s Extensions tab.';await refreshExtensions();}catch(error){message.textContent=userMessage(error);}finally{upload.disabled=false;upload.value='';}});
  try{await refreshExtensions();}catch(error){message.textContent=userMessage(error);}
 });

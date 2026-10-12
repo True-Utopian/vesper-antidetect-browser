@@ -336,3 +336,10 @@ Node.js 26.11.1 coordinator-test processes each passed 14 tests with the one
 external PostgreSQL skip; repeated executions are not counted as new features.
 Browser's separate source repository passed its Windows/Linux CI after the
 0.4.3 update and original compiler fix.
+# Extension catalog removal — source qualification, 2026-10-12
+
+The authenticated DELETE endpoint, Browser control, TypeScript client and Python client passed the owned extension fixture. Assigned profiles, including trashed profiles and saved Workbench runs, refuse removal. Concurrent initial assignment and deletion cannot admit a profile with a missing package. Invalid package IDs are rejected, missing packages return 404, and removal requires authentication.
+
+The source Browser–Workbench run saved a verified 72,593-byte archive. After catalog deletion, an independent archive import retained its extension identity and storage (visits 3 → 4), and the original unassigned profile loaded its retained package/storage after reassignment (visits 2 → 3). Python removal and re-import retained the immutable ID. The visible confirmation, cancel, refusal, removal, empty list, upload/re-import and invalid ZIP recovery passed isolated UI qualification at 1366×768 and 1024×768; the extension controls fitted without horizontal overflow.
+
+Full source validation: 26 Browser tests and 125 Workbench tests passed, with one optional external PostgreSQL test skipped. Local reports: `test-results/desktop-followup/extension-removal-check.log`, `test-results/extensions/local-pair-qualification.json` and `test-results/desktop-followup/extension-removal-ui.json`. This addition has not yet been packaged or installed; the actual desktop remains Browser 0.4.3 / Workbench 0.5.5. Catalog removal is source-tested, not desktop verified. Native kernel compilation and acceptance remain pending.
