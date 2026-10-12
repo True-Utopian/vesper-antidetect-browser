@@ -292,8 +292,8 @@
         {
           "id": "browser-catalog-removal",
           "name": "Catalog removal",
-          "state": "source_tested",
-          "evidence": "docs/extensions.md"
+          "state": "verified",
+          "evidence": "docs/validation.md"
         },
         {
           "id": "browser-version-storage-migration",

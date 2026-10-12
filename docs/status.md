@@ -68,7 +68,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Immutable package checks | source tested | [Evidence](../docs/extensions.md) |
 | Restart storage persistence | verified | [Evidence](../docs/validation.md) |
 | Portable extension archive | verified | [Evidence](../docs/validation.md) |
-| Catalog removal | source tested | [Evidence](../docs/extensions.md) |
+| Catalog removal | verified | [Evidence](../docs/validation.md) |
 | Version storage migration | planned | [Evidence](../docs/extensions.md) |
 | Long Windows launch paths | verified | [Evidence](../docs/validation.md) |
 
