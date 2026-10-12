@@ -2,14 +2,24 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { durableWrite } from './storage.js';
 
-/** Selects protection implemented by the upstream Brave kernel, not JS shims. */
-export interface FingerprintPolicy { protection: 'standard' | 'off' }
+/** Explicit native controls; each Vesper surface requires binary qualification. */
+export interface FingerprintPolicy {
+  protection: 'standard' | 'off';
+  webgl?: 'upstream' | 'restricted';
+  audio?: 'upstream' | 'seeded';
+  fonts?: 'upstream' | 'restricted';
+}
 export function validateFingerprint(value: unknown): FingerprintPolicy {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).some(key => key !== 'protection') ||
+      Object.keys(value).some(key => !['protection','webgl','audio','fonts'].includes(key)) ||
       typeof (value as FingerprintPolicy).protection !== 'string' ||
       !['standard', 'off'].includes((value as FingerprintPolicy).protection)) {
     throw new Error('Fingerprint protection must be standard or off');
+  }
+  const policy=value as FingerprintPolicy;
+  for(const [key,modes] of [['webgl',['upstream','restricted']],['audio',['upstream','seeded']],['fonts',['upstream','restricted']]] as const){
+    if(policy[key]!==undefined&&!modes.some(mode=>mode===policy[key]))throw new Error(`Invalid native ${key} policy`);
+    if(policy.protection==='off'&&policy[key]!==undefined&&policy[key]!=='upstream')throw new Error('Disabled fingerprint protection cannot enable a native surface policy');
   }
   return structuredClone(value) as FingerprintPolicy;
 }
@@ -51,7 +61,7 @@ export const fingerprintCapabilities = {
   implementation: 'upstream-native-brave', customVesperKernel: 'requires-local-build-and-direct-qualification',
   engines: {
     chromium: { protection: ['off'], customNoise: false },
-    vesper: { protection: ['standard','off'], customNoise: true, surfaces: ['hardwareConcurrency','deviceMemory','RGBA8-canvas2d'], availability: 'only-after-local-native-qualification' },
+    vesper: { protection: ['standard','off'], customNoise: true, surfaces: ['hardwareConcurrency','deviceMemory','RGBA8-canvas2d'], pendingSurfacePolicies: ['webgl-debug-restriction','offline-audio-seed','local-font-discovery'], availability: 'only-after-local-native-qualification' },
     brave: { protection: ['standard', 'off'], customNoise: false },
   },
   seedControl: 'vesper-persisted-per-profile', arbitraryDevicePersonas: false, guardedCDP: true,

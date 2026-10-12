@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import { basename, dirname, join, relative } from 'node:path';
 import { durableWrite } from './storage.js';
+import type { FingerprintPolicy } from './native-preferences.js';
 
 export type EngineFamily = 'chromium' | 'brave' | 'vesper';
 export interface NativeKernelReport {
@@ -12,6 +13,11 @@ export interface NativeKernelReport {
   cases: Array<{ name: string; nativeArgs: string[]; version: string; contexts: Record<string, any>; clientHints?: any }>;
   checks: string[]; errors: string[]; limitations: string[];
   diagnosticStack?: string;
+  surfacePolicies?: string[];
+}
+export function assertNativeSurfacePolicies(report: NativeKernelReport | undefined, policy?: FingerprintPolicy) {
+  const required = [policy?.webgl==='restricted'?'webgl-debug-restriction':null,policy?.audio==='seeded'?'offline-audio-seed':null,policy?.fonts==='restricted'?'local-font-discovery':null].filter((value):value is string=>value!==null);
+  if(required.some(value=>report?.state!=='passed'||report.nativeProof!==true||!report.surfacePolicies?.includes(value)))throw new Error('Requested native surface policy lacks qualification on the selected kernel');
 }
 export async function nativeExecutableHash(file: string) {
   const hash = createHash('sha256');
@@ -48,7 +54,7 @@ export async function verifyNativeRuntime(executable: string, inventory: NativeR
 /** Stored inside the browser directory so archives retain the same identity. */
 export async function nativeProfileArguments(directory: string, settings: {
   environment?: { hardwareConcurrency?: number; deviceMemory?: number };
-  fingerprint?: { protection: 'standard' | 'off' };
+  fingerprint?: FingerprintPolicy;
 }) {
   const args: string[] = [];
   const cpu = settings.environment?.hardwareConcurrency;
@@ -57,17 +63,26 @@ export async function nativeProfileArguments(directory: string, settings: {
   if (memory !== undefined) args.push(`--vesper-device-memory=${memory}`);
   if (settings.fingerprint?.protection !== 'off') {
     const file = join(directory, '.vesper-native-policy.json');
-    let seed: string;
+    let seed: string, policy: {schemaVersion:1;canvasSeed:string;audioSeed?:string};
+    let changed=false;
     try {
-      const policy = JSON.parse(await readFile(file, 'utf8'));
+      policy = JSON.parse(await readFile(file, 'utf8'));
       if (policy.schemaVersion !== 1 || typeof policy.canvasSeed !== 'string' || !/^[0-9a-f]{16}$/.test(policy.canvasSeed)) throw new Error('Invalid persisted native canvas identity');
       seed = policy.canvasSeed;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       seed = randomBytes(8).toString('hex');
-      await durableWrite(file, JSON.stringify({ schemaVersion: 1, canvasSeed: seed }));
+      policy={schemaVersion:1,canvasSeed:seed}; changed=true;
     }
+    if(settings.fingerprint?.audio==='seeded'){
+      if(policy.audioSeed===undefined){policy.audioSeed=randomBytes(8).toString('hex');changed=true;}
+      if(typeof policy.audioSeed!=='string'||!/^[0-9a-f]{16}$/.test(policy.audioSeed))throw new Error('Invalid persisted native audio identity');
+      args.push(`--vesper-audio-seed=${policy.audioSeed}`);
+    }
+    if(changed)await durableWrite(file,JSON.stringify(policy));
     args.push(`--vesper-canvas-seed=${seed}`);
+    if(settings.fingerprint?.webgl==='restricted')args.push('--vesper-webgl-policy=restricted');
+    if(settings.fingerprint?.fonts==='restricted')args.push('--vesper-local-font-policy=restricted');
   }
   return args;
 }

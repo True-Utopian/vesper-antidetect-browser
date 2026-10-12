@@ -18,7 +18,7 @@ import { TargetPolicy } from './target-policy.js';
 import { createPolicyGateway } from './cdp-gateway.js';
 import { installBrave } from './brave.js';
 import { EngineCanaryError, qualifyEngineCandidate } from './engine-canary.js';
-import { type EngineFamily, nativeExecutableHash, nativeProfileArguments, nativeRuntimeInventory, verifyNativeRuntime } from './native-kernel.js';
+import { type EngineFamily, nativeExecutableHash, nativeProfileArguments, nativeRuntimeInventory, verifyNativeRuntime, assertNativeSurfacePolicies } from './native-kernel.js';
 import { ExtensionStore, validateExtensionIds } from './extensions.js';
 import { extensionLaunchPaths, profileLaunchPath } from './extension-launch.js';
 import { qualifyNativeKernel } from './native-qualification.mjs';
@@ -102,11 +102,11 @@ export class VesperBrowser implements ProfileEngine {
       await this.proxyCatalog.init();
     })();
   }
-  private async executable(family: EngineFamily = 'chromium'): Promise<string> {
+  private async executable(family: EngineFamily = 'chromium', fingerprint?: FingerprintPolicy): Promise<string> {
     let selected: { executablePath: string } | undefined;
     try { selected = JSON.parse(await readFile(join(this.directory,family==='brave'?'selected-brave.json':family==='vesper'?'selected-native-kernel.json':'selected-browser.json'),'utf8')); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-    if (selected) { await access(selected.executablePath); if(family==='vesper'){const native=selected as { executablePath:string; qualification?:import('./native-kernel.js').NativeKernelReport; runtimeFiles:import('./native-kernel.js').NativeRuntimeFile[] };if(native.qualification?.nativeProof!==true||native.qualification.state!=='passed'||await nativeExecutableHash(native.executablePath)!==native.qualification.executableSha256)throw new Error('Native kernel changed or lacks direct native qualification; stage and test it again');await verifyNativeRuntime(native.executablePath,native.runtimeFiles);}return selected.executablePath; }
+    if (selected) { await access(selected.executablePath); if(family==='vesper'){const native=selected as { executablePath:string; qualification?:import('./native-kernel.js').NativeKernelReport; runtimeFiles:import('./native-kernel.js').NativeRuntimeFile[] };if(native.qualification?.nativeProof!==true||native.qualification.state!=='passed'||await nativeExecutableHash(native.executablePath)!==native.qualification.executableSha256)throw new Error('Native kernel changed or lacks direct native qualification; stage and test it again');await verifyNativeRuntime(native.executablePath,native.runtimeFiles);assertNativeSurfacePolicies(native.qualification,fingerprint);}return selected.executablePath; }
     if(family==='vesper')throw new Error('Stage, test and activate a compiled Vesper kernel under Browser engines first');
     if (family === 'brave') throw new Error('Stage and activate a Brave privacy engine under Engine updates before using this profile');
     if (this.options.executablePath) { const file = resolve(this.options.executablePath); await access(file); return file; }
@@ -278,6 +278,7 @@ export class VesperBrowser implements ProfileEngine {
     if(settings.engine!==undefined&&(typeof settings.engine !== 'string'||!['chromium','brave','vesper'].includes(settings.engine)))throw new Error('Invalid browser engine');
     if(settings.extensions!==undefined)validateExtensionIds(settings.extensions);
     if (settings.fingerprint !== undefined) validateFingerprint(settings.fingerprint);
+    if(settings.fingerprint&&settings.engine!=='vesper'&&['webgl','audio','fonts'].some(key=>key in (settings.fingerprint as object)))throw new Error('Additional native surface policies require Vesper');
     if (settings.fingerprint && (settings.fingerprint as FingerprintPolicy).protection === 'standard' && settings.engine !== 'brave' && settings.engine !== 'vesper') throw new Error('Native standard fingerprint protection requires Brave or Vesper');
     if((settings.environment as EnvironmentPolicy|undefined)?.deviceMemory!==undefined && settings.engine!=='vesper')throw new Error('Device memory policy requires the Vesper native kernel');
     return structuredClone(settings) as LocalProfileSettings;
@@ -340,7 +341,7 @@ export class VesperBrowser implements ProfileEngine {
       return s;
     } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; return undefined; }
   }
-  async install(id: string) { const profile=await this.readProfile(id); await this.executable(profile.settings.engine); }
+  async install(id: string) { const profile=await this.readProfile(id); await this.executable(profile.settings.engine,profile.settings.fingerprint); }
   async trash(id: string, restore = false) { return this.serial(id, async () => {
     const profile = await this.readProfile(id), session = await this.session(id);
     if (session && isAlive(session.pid)) throw new Error('Stop the profile before moving it to trash');
@@ -354,7 +355,7 @@ export class VesperBrowser implements ProfileEngine {
     if (profile.trashedAt) throw new Error('Restore the profile from trash before opening it');
     const prior = await this.session(id); if (prior && isAlive(prior.pid)) throw new Error('Profile is already running');
     if ((await this.listProfiles()).filter(p => p.state === 'running').length >= (this.options.maxConcurrency ?? 1)) throw new Error('Local browser capacity is full. Stop an open profile before starting another.');
-    const executablePath = await this.executable(profile.settings.engine);
+    const executablePath = await this.executable(profile.settings.engine,profile.settings.fingerprint);
     let proxy: ProxyServer | undefined, browser: PuppeteerBrowser | undefined, gateway: Awaited<ReturnType<typeof createPolicyGateway>> | undefined, extensionCleanup = async () => {};
     try {
       const installedExtensions = await this.extensionStore.prepare(join(this.profileDir(id),'browser'),profile.settings.extensions??[]);

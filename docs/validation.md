@@ -1,5 +1,9 @@
 # Validation record
 
+## Native surface source checks, 12 October 2026
+
+The [native surface policy record](native-surface-policy.md) records 177 passing source tests, 4,141 standalone C++ assertions and four isolated Chromium translation-unit compiles. Browser 0.4.6's editor passed five owned-store checks: policy save/reload, protection-off disablement, engine-specific visibility and reviewed viewport fit. Workbench 0.5.8 forwards the same settings through Inspect. These checks do not qualify a custom native browser or the new installed desktop pair; their release gates remain pending.
+
 Current engine evidence is in the [native policy follow-up](#native-policy-follow-up--2026-10-11) below. Earlier sections describe their own dated acceptance scope.
 
 The dated checks below record observed behavior. Earlier live results cover script mode; managed flows have their own implementation and integration checks.

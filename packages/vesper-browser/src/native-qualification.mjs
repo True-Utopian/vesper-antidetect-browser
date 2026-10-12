@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import puppeteer from 'puppeteer-core';
+import {observeNativeSurfacePolicies,assertSurfaceObservations,assertRestrictedSurfaces} from './native-surface-qualification.mjs';
 
 // Independent PNG decoding avoids re-importing export pixels into a canvas,
 // which would pass through the candidate's readback policy a second time.
@@ -74,7 +75,7 @@ const executable = await realpath(resolve(executablePath));
 assert.ok((await stat(executable)).isFile());
 const temporary = await mkdtemp(join(tmpdir(), 'vesper-kernel-proof-'));
 /** @type {import("./native-kernel.js").NativeKernelReport} */
-const report = { schemaVersion: 1, author: 'true-utopian', at: new Date().toISOString(), state: 'running', implementation: 'native-chromium-patches', executable, executableSha256: '', nativeProof: false, cases: [], checks: [], errors: [], limitations: ['Only original loopback fixtures and RGBA8 Canvas2D masking surfaces are qualified.', 'WebGL export/read consistency is checked; WebGL masking, audio, fonts, media identities, float16 and arbitrary device personas remain outside this gate.', 'A pass establishes native enforcement on this binary and fixture, not all-site behavior.'] };
+const report = { schemaVersion: 1, author: 'true-utopian', at: new Date().toISOString(), state: 'running', implementation: 'native-chromium-patches', executable, executableSha256: '', nativeProof: false, cases: [], checks: [], errors: [], limitations: ['Only original loopback fixtures, native scalars and RGBA8 Canvas2D masking surfaces are qualified.', 'Surface controls cover WebGL debug-renderer exposure, completed offline audio and bounded local-font discovery. GPU pixels/shaders/WebGPU, realtime audio/device identity, font-pack virtualization, Unicode fallback isolation, float16 and arbitrary device personas remain outside this gate.', 'A pass establishes native enforcement on this binary and fixture, not all-site behavior.'] };
 async function digest(file) { const hash = createHash('sha256'); for await (const data of createReadStream(file)) hash.update(data); return hash.digest('hex'); }
 const hashPixels = pixels => createHash('sha256').update(Buffer.from(pixels)).digest('hex');
 
@@ -109,8 +110,10 @@ async function fixtureSample() {
       graphics.push({api,pixels:[...pixels],repeat:[...repeat],error,encoded:[...new Uint8Array(await blob.arrayBuffer())],dataUrl:typeof c.toDataURL==='function'?c.toDataURL('image/png'):null});
     } finally { gl.getExtension('WEBGL_lose_context')?.loseContext(); }
   }
-  return { ...scalars, first, second, crop, encoded, dataUrl, graphics };
+  return { ...scalars, first, second, crop, encoded, dataUrl, graphics, surfaces:await observeNativeSurfacePolicies(probeEnumeration) };
 }
+let probeEnumeration=false;
+function sampleSource(probe){return `(async()=>{const observeNativeSurfacePolicies=${observeNativeSurfacePolicies.toString()};const probeEnumeration=${probe};return (${fixtureSample.toString()})();})()`;}
 let port;
 const fixture = createServer((request, response) => {
   response.setHeader('cache-control', 'no-store');
@@ -121,7 +124,7 @@ const fixture = createServer((request, response) => {
     response.end(JSON.stringify({ deviceMemory: request.headers['sec-ch-device-memory'], legacyDeviceMemory: request.headers['device-memory'] }));
     return;
   }
-  const sample = `(${fixtureSample.toString()})()`;
+  const sample = sampleSource(probeEnumeration);
   if (path.endsWith('.js')) {
     response.setHeader('content-type', 'application/javascript');
     if (path === '/shared.js') response.end(`const first=${sample};onconnect=e=>{const p=e.ports[0];first.then(v=>p.postMessage(v));p.start()}`);
@@ -144,7 +147,7 @@ await writeFile(join(extension, 'manifest.json'), JSON.stringify({
   version: '1.0.0', background: { service_worker: 'worker.js' },
   content_scripts: [{ matches: ['http://127.0.0.1/*'], js: ['content.js'], run_at: 'document_end' }],
 }));
-await writeFile(join(extension, 'worker.js'), `const first=(${fixtureSample.toString()})();
+await writeFile(join(extension, 'worker.js'), `const first=${sampleSource(false)};
 chrome.runtime.onMessage.addListener((message,_sender,respond)=>{
 if(message.kind!=='vesper-native-proof')return;
 first.then(value=>respond({value}),error=>respond({error:error.message}));return true;});`);
@@ -160,6 +163,7 @@ function checkCanvas(value, context) {
   assert.deepEqual(value.first.slice(0, 4), [0, 0, 0, 0], `${context}: transparent pixels`);
 }
 async function runCase(name, nativeArgs, expected, full = true) {
+  probeEnumeration=nativeArgs.includes('--vesper-local-font-policy=restricted');
   const store = join(temporary, name);
   active = await puppeteer.launch({ executablePath: executable, userDataDir: store, headless: true, defaultViewport: null, enableExtensions: true,
     args: ['--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update', '--site-per-process', `--disable-extensions-except=${extension}`, `--load-extension=${extension}`, ...nativeArgs], timeout: 60000 });
@@ -187,6 +191,7 @@ async function runCase(name, nativeArgs, expected, full = true) {
     for (const [context, value] of Object.entries(record.contexts)) {
       if (expected) { assert.equal(value.cpu, expected.cpu, `${name}/${context}: native CPU`); assert.equal(value.memory, expected.memory, `${name}/${context}: native device memory`); }
       checkCanvas(value, `${name}/${context}`);
+      assertSurfaceObservations(value.surfaces,`${name}/${context}`);
       const graphicsCount = assertNativeCanvasScope(value, `${name}/${context}`);
       if (context === 'page') assert.equal(graphicsCount, 2, `${name}: page must expose both owned WebGL scope fixtures`);
       value.canvasSha256 = hashPixels(value.first);
@@ -208,8 +213,18 @@ try {
   for (const [context, value] of Object.entries(seeded.contexts)) assert.equal(value.canvasSha256, seeded.contexts.page.canvasSha256, `${context}: equal original painting must produce equal output`);
   const invalid = await runCase('invalid-fallback', ['--vesper-hardware-concurrency=0', '--vesper-device-memory=3', '--vesper-canvas-seed=invalid'], { cpu: baseline.contexts.page.cpu, memory: baseline.contexts.page.memory }, false);
   assert.equal(invalid.contexts.page.canvasSha256, baseline.contexts.page.canvasSha256, 'Invalid seed must preserve upstream canvas fallback');
+  const surfaceArgs=['--vesper-webgl-policy=restricted','--vesper-local-font-policy=restricted','--vesper-audio-seed=0123456789abcdef'];
+  const surfaces=await runCase('surface-policy-a',[...options,...surfaceArgs],{cpu:4,memory:4});
+  for(const [context,value] of Object.entries(surfaces.contexts))assertRestrictedSurfaces(baseline.contexts[context].surfaces,value.surfaces,context,context==='page');
+  const surfaceRestart=await runCase('surface-policy-a-restart',[...options,...surfaceArgs],{cpu:4,memory:4},false);
+  assert.deepEqual(surfaceRestart.contexts.page.surfaces.audio.first,surfaces.contexts.page.surfaces.audio.first,'Native audio identity must survive restart');
+  const otherSurfaces=await runCase('surface-policy-b',[...options,'--vesper-audio-seed=fedcba9876543210'],{cpu:4,memory:4},false);
+  assert.notDeepEqual(otherSurfaces.contexts.page.surfaces.audio.first,surfaces.contexts.page.surfaces.audio.first,'Independent native audio seeds must differ');
+  const invalidSurfaces=await runCase('surface-policy-invalid',[...options,'--vesper-audio-seed=invalid','--vesper-webgl-policy=Restricted','--vesper-local-font-policy=Restricted'],{cpu:4,memory:4},false);
+  assert.deepEqual(invalidSurfaces.contexts.page.surfaces,baseline.contexts.page.surfaces,'Malformed surface switches must retain upstream observations');
+  report.surfacePolicies=['webgl-debug-restriction','offline-audio-seed','local-font-discovery'];
   assert.equal(await digest(executable), report.executableSha256, 'Candidate executable changed during proof');
-  report.checks.push('Direct native launch without CDP environment overrides or JS shims', 'First-script CPU/device-memory in pages, OOPIFs, dedicated/shared/service workers, startup MV3 extension worker and popup', 'Deterministic non-accumulating RGBA8 readback and coherent native PNG exports', 'Canvas2D policy does not create WebGL 1/2 pixel/export contradictions', 'Stable seed across process restart; independent seed differs', 'Malformed native switches fall back to upstream values');
+  report.checks.push('Direct native launch without CDP environment overrides or JS shims', 'First-script CPU/device-memory in pages, OOPIFs, dedicated/shared/service workers, startup MV3 extension worker and popup', 'Deterministic non-accumulating RGBA8 readback and coherent native PNG exports', 'Canvas2D policy does not create WebGL 1/2 pixel/export contradictions', 'Stable seed across process restart; independent seed differs', 'Malformed native switches fall back to upstream values', 'WebGL debug extension advertisement, access and unsupported-enum errors agree', 'Offline audio shared reads, offset copies and completion event agree; seeded output survives restart and invalid input retains fallback', 'Restricted local families fall back, essential font metrics remain intact, CSS local unique faces and font enumeration are denied');
   report.state = 'passed'; report.nativeProof = true;
 } catch (error) { report.state = 'failed'; report.errors.push(error.message ?? String(error)); report.diagnosticStack = error.stack; }
 finally {

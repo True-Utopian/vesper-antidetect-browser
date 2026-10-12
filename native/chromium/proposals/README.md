@@ -1,5 +1,7 @@
 # Pending native corrections
 
+`0004-native-surface-policy.patch` adds original restricted WebGL debug metadata, seeded offline audio and restricted local font discovery. Its four renderer translation units compile in isolation, and its portable policy core passes 4,141 assertions. It is queued together with the canvas scope correction, after the active compiler and helper finish. It has not yet produced a fully compiled or runtime-qualified browser. See the [surface policy acceptance record](../../../docs/native-surface-policy.md) for exact scope, API integration and remaining requirements.
+
 By **true-utopian**. These original proposals are excluded from `kernel.json` until they can be applied to an idle checkout and compiled. A clean patch check is not compilation or runtime qualification.
 
 `0003-canvas-export-scope.patch` restricts the existing Canvas2D seed policy to Canvas2D exports. The current two-patch implementation invokes the export transformation for GPU canvases as well, while WebGL `readPixels` retains upstream behavior. That creates a pixel/export contradiction when the seed is enabled. This is a source finding; its exact compiled-runtime manifestation remains to be measured.

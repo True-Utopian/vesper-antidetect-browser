@@ -37,10 +37,10 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Native RGBA8 canvas | in progress | [Evidence](../native/chromium/README.md) |
 | Persisted native seed | source tested | [Evidence](../native/chromium/README.md) |
 | Coherent browser personas | planned | [Evidence](../docs/research/completion-gates.md) |
-| WebGL identity | planned | [Evidence](../docs/research/completion-gates.md) |
+| WebGL identity | in progress | [Evidence](../docs/native-surface-policy.md) |
 | WebGPU identity | planned | [Evidence](../docs/research/completion-gates.md) |
-| Audio surfaces | planned | [Evidence](../docs/research/completion-gates.md) |
-| Font exposure | planned | [Evidence](../docs/research/completion-gates.md) |
+| Audio surfaces | in progress | [Evidence](../docs/native-surface-policy.md) |
+| Font exposure | in progress | [Evidence](../docs/native-surface-policy.md) |
 | Media devices | planned | [Evidence](../docs/research/completion-gates.md) |
 | Headed screen consistency | planned | [Evidence](../docs/research/completion-gates.md) |
 | Custom binary qualification | in progress | [Evidence](../native/chromium/README.md) |

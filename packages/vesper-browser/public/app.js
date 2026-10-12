@@ -117,7 +117,9 @@ function openEditor(profile = null, asNew = false) {
   editing = asNew ? null : profile; const form = $('#profile-form'); form.reset(); $('#form-error').textContent = '';
   form.elements.name.value = profile?.name || ''; form.elements.locale.value = profile?.settings.locale || ''; form.elements.timezone.value = profile?.settings.timezone || '';
   form.elements.engine.value=profile?.settings.engine||'chromium';
-  form.elements.fingerprintProtection.value=profile?.settings.fingerprint?.protection||'standard';fingerprintFields();
+  form.elements.fingerprintProtection.value=profile?.settings.fingerprint?.protection||'standard';
+  for(const [field,key] of [['nativeWebgl','webgl'],['nativeAudio','audio'],['nativeFonts','fonts']])form.elements[field].value=profile?.settings.fingerprint?.[key]||'upstream';
+  fingerprintFields();
   form.elements.width.value = profile?.settings.viewport?.width || ''; form.elements.height.value = profile?.settings.viewport?.height || '';
   for(const key of ['folder','notes','status'])form.elements[key].value=profile?.settings[key]||'';form.elements.tags.value=profile?.settings.tags?.join(', ')||'';form.elements.startPages.value=profile?.settings.startPages?.join('\n')||'';
   const environment=profile?.settings.environment||{};form.elements.deviceMemory.value=environment.deviceMemory||'';form.elements.cpu.value=environment.hardwareConcurrency||'';for(const key of ['webRTC','webGL','images'])if(environment[key])form.elements[key].value=environment[key];form.elements.screenWidth.value=environment.screen?.width||'';form.elements.screenHeight.value=environment.screen?.height||'';form.elements.latitude.value=environment.geolocation?.latitude??'';form.elements.longitude.value=environment.geolocation?.longitude??'';
@@ -143,13 +145,15 @@ $('#install-browser').addEventListener('click', async () => {
 $('#refresh').addEventListener('click', () => { $('#action-error').textContent = ''; void refresh().catch(error => { $('#action-error').textContent = userMessage(error); }); });
 for (const selector of ['#cancel', '#cancel-top']) $(selector).addEventListener('click', () => $('#profile-dialog').close());
 $('#profile-form').elements.proxyMode.addEventListener('change', proxyFields);
-function fingerprintFields(){const form=$('#profile-form'),engine=form.elements.engine.value,enabled=['brave','vesper'].includes(engine);$('#fingerprint-setting').hidden=!enabled;form.elements.fingerprintProtection.disabled=!enabled;$('#native-memory-setting').hidden=engine!=='vesper';form.elements.deviceMemory.disabled=engine!=='vesper';}
+function fingerprintFields(){const form=$('#profile-form'),engine=form.elements.engine.value,enabled=['brave','vesper'].includes(engine);$('#fingerprint-setting').hidden=!enabled;form.elements.fingerprintProtection.disabled=!enabled;$('#native-memory-setting').hidden=engine!=='vesper';form.elements.deviceMemory.disabled=engine!=='vesper';$('#native-surface-settings').hidden=engine!=='vesper';for(const field of ['nativeWebgl','nativeAudio','nativeFonts'])form.elements[field].disabled=engine!=='vesper'||form.elements.fingerprintProtection.value==='off';}
 $('#profile-form').elements.engine.addEventListener('change',fingerprintFields);
+$('#profile-form').elements.fingerprintProtection.addEventListener('change',fingerprintFields);
 $('#profile-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget, settings = { name: form.elements.name.value.trim() };
   settings.extensions=[...form.querySelectorAll('[name=extensionId]:checked')].map(input=>input.value);
   settings.engine=form.elements.engine.value;
   settings.fingerprint={protection:['brave','vesper'].includes(settings.engine)?form.elements.fingerprintProtection.value:'off'};
+  if(settings.engine==='vesper'&&settings.fingerprint.protection==='standard')for(const [field,key] of [['nativeWebgl','webgl'],['nativeAudio','audio'],['nativeFonts','fonts']])if(form.elements[field].value!=='upstream')settings.fingerprint[key]=form.elements[field].value;
   for(const key of ['folder','status','notes'])settings[key]=form.elements[key].value.trim();settings.tags=form.elements.tags.value.split(',').map(x=>x.trim()).filter(Boolean);settings.startPages=form.elements.startPages.value.split('\n').map(x=>x.trim()).filter(Boolean);
   settings.environment={webRTC:form.elements.webRTC.value,webGL:form.elements.webGL.value,images:form.elements.images.value};if(form.elements.cpu.value)settings.environment.hardwareConcurrency=Number(form.elements.cpu.value);if(settings.engine==='vesper'&&form.elements.deviceMemory.value)settings.environment.deviceMemory=Number(form.elements.deviceMemory.value);
   if(Boolean(form.elements.screenWidth.value)!==Boolean(form.elements.screenHeight.value)){ $('#form-error').textContent='Enter both screen dimensions.';return;}if(form.elements.screenWidth.value)settings.environment.screen={width:Number(form.elements.screenWidth.value),height:Number(form.elements.screenHeight.value),deviceScaleFactor:1};
