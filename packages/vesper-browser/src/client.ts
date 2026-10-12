@@ -54,6 +54,16 @@ export class VesperBrowserClient implements ProfileEngine {
   }
   async capabilities() { return this.json<{ apiVersion: string; capabilities: Record<string, unknown> }>('/api/v1/capabilities'); }
   async listProfiles() { return this.json<LocalProfile[]>('/api/v1/profiles'); }
+  async proxies() { return this.json<import('./proxies.js').SavedProxy[]>('/api/v1/proxies'); }
+  async saveProxy(data: Record<string, unknown>, id?: string) {
+    if (id && !/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid saved proxy ID');
+    return this.json<import('./proxies.js').SavedProxy>('/api/v1/proxies'+(id?'/'+id:''),id?'PATCH':'POST',data);
+  }
+  async removeProxy(id: string, revision: number) {
+    if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid saved proxy ID');
+    return this.json<{id:string;removed:boolean}>('/api/v1/proxies/'+id,'DELETE',{revision});
+  }
+  async assignProxy(id: string, proxyId: string, revision: number) { return this.json<{id:string;proxyId:string;proxyRevision:number;revision:number}>(this.route(id,'proxy'),'POST',{proxyId,revision}); }
   async claimProfile(id: string, runId: string) { await this.json(this.route(id, 'lease'), 'POST', { runId }); this.owners.set(id, runId); }
   async releaseProfile(id: string) { if (this.owners.has(id)) { await this.json(this.route(id, 'lease'), 'DELETE'); this.owners.delete(id); } }
   async readProfile(id: string) { return this.json<LocalProfile>(this.route(id)); }

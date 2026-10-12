@@ -10,6 +10,7 @@ import { Server as ProxyServer } from 'proxy-chain';
 import * as tar from 'tar';
 import type { ProfileEngine, ProxyChoice } from './types.js';
 import { InputVault, durableWrite } from './storage.js';
+import { ProxyCatalog, validateProxyChoice } from './proxies.js';
 import { acquireProcessLock } from './process-lock.js';
 import { validateEnvironment, environmentArguments, type EnvironmentPolicy } from './persona.js';
 import { prepareNativePreferences, validateFingerprint, fingerprintCapabilities, type FingerprintPolicy } from './native-preferences.js';
@@ -25,6 +26,7 @@ import { qualifyNativeKernel } from './native-qualification.mjs';
 
 export interface LocalProfileSettings {
   name?: string; storage?: 'local'; proxy?: ProxyChoice;
+  savedProxy?: { id: string; revision: number };
   locale?: string; timezone?: string;
   viewport?: { width: number; height: number; deviceScaleFactor?: number };
   folder?: string; tags?: string[]; notes?: string; status?: string; favorite?: boolean;
@@ -34,7 +36,7 @@ export interface LocalProfileSettings {
   extensions?: string[];
 }
 export interface LocalProfile {
-  id: string; name: string; createdAt: string; settings: Omit<LocalProfileSettings, 'proxy'>;
+  id: string; name: string; createdAt: string; settings: Omit<LocalProfileSettings, 'proxy' | 'savedProxy'>;
   hasProxy: boolean; revision?: number; browserVersion?: string; state?: 'running' | 'stopped'; trashedAt?: string;
 }
 interface Session { pid: number; endpoint: string; nativeEndpoint?: string }
@@ -51,6 +53,7 @@ export class VesperBrowser implements ProfileEngine {
   private directory: string;
   private vault: InputVault;
   private extensionStore: ExtensionStore;
+  private proxyCatalog: ProxyCatalog;
   private initialized?: Promise<void>;
   private live = new Map<string, Live>();
   private operations = new Map<string, Promise<unknown>>();
@@ -66,6 +69,7 @@ export class VesperBrowser implements ProfileEngine {
     this.directory = resolve(options.directory);
     this.vault = new InputVault(join(this.directory, 'secrets'));
     this.extensionStore = new ExtensionStore(join(this.directory,'extensions'));
+    this.proxyCatalog = new ProxyCatalog(join(this.directory, 'proxy-inventory'));
   }
   get storeDirectory() { return this.directory; }
   private profileDir(id: string) { if (!idPattern.test(id)) throw new Error('Invalid local profile ID'); return join(this.directory, 'profiles', id); }
@@ -95,6 +99,7 @@ export class VesperBrowser implements ProfileEngine {
       const handle = await open(lock, 'wx', 0o600);
       try { await handle.writeFile(JSON.stringify({ pid: process.pid, ownerId: this.ownerId })); } finally { await handle.close(); }
       await this.vault.init();
+      await this.proxyCatalog.init();
     })();
   }
   private async executable(family: EngineFamily = 'chromium'): Promise<string> {
@@ -135,6 +140,17 @@ export class VesperBrowser implements ProfileEngine {
   }
   async profileExtensions(id:string) { return this.serial(id,async()=>{const profile=await this.readProfile(id);return this.extensionStore.describe(join(this.profileDir(id),'browser'),profile.settings.extensions??[]);}); }
   async ready() { await this.init(); await this.executable(); }
+  async proxies() { return this.serial('extension-catalog', async () => { await this.init(); return this.proxyCatalog.list(); }); }
+  async saveProxy(data: Record<string, unknown>, id?: string) { return this.serial('extension-catalog', async () => { await this.init(); return this.proxyCatalog.save(data, id); }); }
+  async removeProxy(id: string, revision: unknown) { return this.serial('extension-catalog', async () => { await this.init(); return this.proxyCatalog.remove(id, revision); }); }
+  async assignProxy(id: string, proxyId: string, revision: unknown) {
+    return this.serial('extension-catalog', () => this.serial(id, async () => {
+      await this.init();
+      const proxy = this.proxyCatalog.connection(proxyId, revision);
+      await this.updateUnlocked(id, { proxy });
+      return { id, proxyId, proxyRevision: revision, revision: (await this.readProfile(id)).revision };
+    }));
+  }
   async stageNativeKernel(executablePath: string) {
     return this.serial('engine', async () => {
       await this.init();
@@ -234,7 +250,7 @@ export class VesperBrowser implements ProfileEngine {
     finally { await browser.disconnect(); }
   }
   validateSettings(settings: Record<string, unknown>): LocalProfileSettings {
-    const allowed = new Set(['name', 'storage', 'proxy', 'locale', 'timezone', 'viewport','folder','tags','notes','status','favorite','startPages','environment','engine','fingerprint','extensions']);
+    const allowed = new Set(['name', 'storage', 'proxy', 'savedProxy', 'locale', 'timezone', 'viewport','folder','tags','notes','status','favorite','startPages','environment','engine','fingerprint','extensions']);
     const unsupported = Object.keys(settings).filter(key => !allowed.has(key));
     if (unsupported.length) throw new Error(`Unsupported local profile settings: ${unsupported.join(', ')}. This engine does not support proprietary fingerprint definitions.`);
     if (settings.storage !== undefined && settings.storage !== 'local') throw new Error('Local engine requires local storage');
@@ -246,9 +262,11 @@ export class VesperBrowser implements ProfileEngine {
       if (!v || Object.keys(v).some(k => !['width', 'height', 'deviceScaleFactor'].includes(k)) || !Number.isInteger(v.width) || !Number.isInteger(v.height) || v.width < 320 || v.height < 200 || v.width > 7680 || v.height > 4320 || (v.deviceScaleFactor !== undefined && (!Number.isFinite(v.deviceScaleFactor) || v.deviceScaleFactor < 0.5 || v.deviceScaleFactor > 4))) throw new Error('Invalid viewport');
     }
     if (settings.proxy !== undefined) {
-      const p = settings.proxy as ProxyChoice;
-      if (!p || !['http', 'socks5'].includes(p.value) || !p.extra || typeof p.extra.host !== 'string' || !p.extra.host || /[\s/@?#]/.test(p.extra.host) || !Number.isInteger(p.extra.port) || p.extra.port < 1 || p.extra.port > 65535 || [p.extra.id, p.extra.secret].some(v => v !== undefined && typeof v !== 'string')) throw new Error('Invalid proxy connection');
-      if (p.value === 'http' && p.extra.id?.includes(':')) throw new Error('HTTP proxy usernames cannot contain a colon');
+      validateProxyChoice(settings.proxy);
+    }
+    if (settings.savedProxy !== undefined) {
+      const ref = settings.savedProxy as LocalProfileSettings['savedProxy'];
+      if (!ref || typeof ref !== 'object' || Array.isArray(ref) || Object.keys(ref).some(k => !['id','revision'].includes(k)) || typeof ref.id !== 'string' || !idPattern.test(ref.id) || !Number.isSafeInteger(ref.revision) || ref.revision < 1 || settings.proxy !== undefined) throw new Error('Invalid saved proxy reference; use either savedProxy or inline proxy');
     }
     for (const [key, limit] of [['folder',120],['notes',4000],['status',64]] as const) if (settings[key] !== undefined && (typeof settings[key] !== 'string' || settings[key].length > limit)) throw new Error(`Invalid ${key}`);
     if (settings.favorite !== undefined && typeof settings.favorite !== 'boolean') throw new Error('Invalid favorite');
@@ -271,7 +289,8 @@ export class VesperBrowser implements ProfileEngine {
     let validated: LocalProfileSettings;
     try { validated = this.validateSettings(settings); } catch (error) { throw Object.assign(error as Error, { status: 400 }); }
     await this.init();
-    const { proxy, ...publicSettings } = validated;
+    const { proxy: inlineProxy, savedProxy, ...publicSettings } = validated;
+    const proxy = savedProxy ? this.proxyCatalog.connection(savedProxy.id,savedProxy.revision) : inlineProxy;
     const id = randomUUID(), directory = this.profileDir(id);
     await mkdir(join(directory, 'browser'), { recursive: true, mode: 0o700 });
     try {
@@ -292,8 +311,11 @@ export class VesperBrowser implements ProfileEngine {
   }
   async readProfile(id: string): Promise<LocalProfile> { await this.init(); return JSON.parse(await readFile(join(this.profileDir(id), 'manifest.json'), 'utf8')); }
   async update(id: string, settings: Record<string, unknown>): Promise<void> {
+    if ('savedProxy' in settings) throw Object.assign(new Error('Assign a saved proxy using the profile proxy endpoint before changing settings'), { status:400 });
+    return this.serial('extension-catalog', () => this.serial(id, () => this.updateUnlocked(id, settings)));
+  }
+  private async updateUnlocked(id: string, settings: Record<string, unknown>): Promise<void> {
     const { proxy: requestedProxy, ...rest } = settings;
-    return this.serial('extension-catalog', () => this.serial(id, async () => {
       const profile = await this.readProfile(id), session = await this.session(id);
       if (session && isAlive(session.pid)) throw new Error('Stop the profile before changing settings');
       const validated = this.validateSettings({ ...profile.settings, ...rest, ...(requestedProxy == null ? {} : { proxy: requestedProxy }) });
@@ -305,7 +327,6 @@ export class VesperBrowser implements ProfileEngine {
       if (validated.name !== undefined) profile.name = validated.name;
       profile.revision = (profile.revision ?? 1) + 1;
       await durableWrite(join(this.profileDir(id), 'manifest.json'), JSON.stringify(profile, null, 2));
-    }));
   }
   private async session(id: string): Promise<Session | undefined> {
     try {

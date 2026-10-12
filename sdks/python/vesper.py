@@ -114,6 +114,25 @@ class Browser(Client):
     def profiles(self):
         return self.request("/profiles")
 
+    def proxies(self):
+        return self.request("/proxies")
+
+    @staticmethod
+    def _proxy_path(proxy_id):
+        if not isinstance(proxy_id, str) or not re.fullmatch(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", proxy_id):
+            raise ValueError("Invalid saved proxy ID")
+        return "/proxies/" + proxy_id
+
+    def save_proxy(self, settings, proxy_id=None):
+        return self.request(self._proxy_path(proxy_id) if proxy_id else "/proxies", "PATCH" if proxy_id else "POST", settings)
+
+    def remove_proxy(self, proxy_id, revision):
+        return self.request(self._proxy_path(proxy_id), "DELETE", {"revision": revision})
+
+    def assign_proxy(self, profile_id, proxy_id, revision):
+        self._proxy_path(proxy_id)
+        return self.request(self._path(profile_id, "proxy"), "POST", {"proxyId": proxy_id, "revision": revision}, self._lease(profile_id))
+
     def fingerprint_capabilities(self):
         return self.request("/fingerprint/capabilities")
 

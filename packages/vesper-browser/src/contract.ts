@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { durableWrite } from './storage.js';
 
 export const apiVersion = '1.0';
-export const capabilities = { profiles: true, revisions: true, archives: true, proxies: ['http', 'socks5'], leases: true, eventReplay: true, cdp: true, templates:true, trash:true, metadata:true, bulkActions:true, cookies:true, extensions:{manifestVersions:[3],localPackages:true,perProfile:true}, environmentPolicies:true, nativePrivacyEngine:'brave-optional', fingerprintPolicies:true, targetPolicies:true, engineUpdates:true, proprietaryFingerprints: false };
+export const capabilities = { profiles: true, revisions: true, archives: true, proxies: ['http', 'socks5'], proxyInventory:{encrypted:true,credentialReadback:false,assignment:'independent-snapshot',revisions:true}, leases: true, eventReplay: true, cdp: true, templates:true, trash:true, metadata:true, bulkActions:true, cookies:true, extensions:{manifestVersions:[3],localPackages:true,perProfile:true}, environmentPolicies:true, nativePrivacyEngine:'brave-optional', fingerprintPolicies:true, targetPolicies:true, engineUpdates:true, proprietaryFingerprints: false };
 export const conflict = (message: string) => Object.assign(new Error(message), { status: 409 });
 export function leaseKey(token: string, id: string, runId: string) { return createHmac('sha256', token).update(`vesper-lease-v1:${id}:${runId}`).digest('base64url'); }
 type Event = { cursor: number; type: string; profileId: string; at: string };
