@@ -154,8 +154,8 @@
         {
           "id": "browser-webgl-identity",
           "name": "WebGL identity",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "in_progress",
+          "evidence": "docs/native-surface-policy.md"
         },
         {
           "id": "browser-webgpu-identity",
@@ -166,14 +166,14 @@
         {
           "id": "browser-audio-surfaces",
           "name": "Audio surfaces",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "in_progress",
+          "evidence": "docs/native-surface-policy.md"
         },
         {
           "id": "browser-font-exposure",
           "name": "Font exposure",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "in_progress",
+          "evidence": "docs/native-surface-policy.md"
         },
         {
           "id": "browser-media-devices",
