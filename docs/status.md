@@ -53,7 +53,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | SOCKS5 proxy | verified | [Evidence](../docs/validation.md) |
 | Credential vault | verified | [Evidence](../docs/validation.md) |
 | Proxy editing per profile | verified | [Evidence](../docs/validation.md) |
-| Owned outage navigation | source tested | [Evidence](../docs/proxies.md) |
+| Owned outage navigation | verified | [Evidence](../docs/proxies.md) |
 | Browser inventory editor | verified | [Evidence](../docs/validation.md) |
 | Rotation workflow | planned | [Evidence](../docs/research/completion-gates.md) |
 | Whole-browser leak capture | planned | [Evidence](../docs/research/completion-gates.md) |

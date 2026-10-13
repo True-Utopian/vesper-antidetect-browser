@@ -6,12 +6,14 @@ import { join, resolve, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import * as tar from 'tar';
-import { createDeb } from './linux-package.mjs';
+import { createDeb, linuxArchiveMode } from './linux-package.mjs';
 import { updateKey, signLocalUpdate } from './local-update-signing.mjs';
 import { nativeExecutableHash, verifyNativeRuntime } from '../packages/vesper-browser/dist/native-kernel.js';
 import { qualifyNativeKernel } from '../packages/vesper-browser/dist/native-qualification.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { loadDesktopNativeBundle } from './desktop-native-bundle.mjs';
+import { prepareLinuxPortableInstaller } from './linux-portable-installer.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2), product = args[0] ?? 'browser', platform = args[1] ?? process.platform;
@@ -21,14 +23,8 @@ const kernelIndex = args.indexOf('--native-kernel-manifest');
 let nativeKernel;
 if (kernelIndex >= 0) {
   if (!args[kernelIndex + 1] || args[kernelIndex + 1].startsWith('--')) throw new Error('Missing --native-kernel-manifest path');
-  if (platform !== 'win32' || process.platform !== 'win32' || !full || args.includes('--dir')) throw new Error('Bundled native qualification currently requires a full Windows installer on Windows');
-  const path = await realpath(resolve(args[kernelIndex + 1]));
-  const record = JSON.parse(await readFile(path, 'utf8'));
-  if (record.schemaVersion !== 1 || record.author !== 'true-utopian' || record.executable !== 'chrome.exe' || record.nativeUnitExecutions !== 26 || record.qualification?.state !== 'passed' || record.qualification?.nativeProof !== true || record.qualification.executableSha256 !== record.executableSha256) throw new Error('Bundle only a qualified Vesper native runtime');
-  const executable = join(dirname(path), record.executable);
-  if (await nativeExecutableHash(executable) !== record.executableSha256) throw new Error('Qualified native executable changed');
-  await verifyNativeRuntime(executable, record.runtimeFiles);
-  nativeKernel = { path, directory: dirname(path), record };
+  const pinned=JSON.parse(await readFile(join(root,'native/chromium/kernel.json'),'utf8'));
+  nativeKernel=await loadDesktopNativeBundle(resolve(args[kernelIndex+1]),{platform,full,directoryOnly:args.includes('--dir'),revision:pinned.revision,chromiumVersion:pinned.chromiumVersion});
 }
 const stage = join(root, '.desktop-build', product, platform);
 await mkdir(stage, { recursive: true }); await mkdir(output, { recursive: true });
@@ -68,7 +64,7 @@ await writeFile(join(payload, 'THIRD-PARTY-NOTICES.txt'), notices.join('\n'));
 await mkdir(join(stage, 'desktop'), { recursive: true });
 for (const file of ['main.cjs', 'service.mjs','bundled-kernel.mjs','service-process.cjs','preload.cjs','update-contract.cjs','seed-files.mjs','plugin-contract.cjs','workbench-host.cjs']) await cp(join(root, 'desktop', file), join(stage, 'desktop', file));
 await writeFile(join(stage,'desktop/update-public-key.pem'),(await updateKey()).publicKey);
-await writeFile(join(stage, 'desktop/product.json'), JSON.stringify({ product, name, version: metadata.version, bundledBrowser: full, bundledNativeKernel: !!nativeKernel }));
+await writeFile(join(stage, 'desktop/product.json'), JSON.stringify({ product, name, version: metadata.version, bundledBrowser: full, bundledBrowserPath: platform==='linux'&&nativeKernel?'vesper-kernel':'chromium', bundledNativeKernel: !!nativeKernel }));
 const icon = (await readFile(join(root, 'public/vesper-icon.png'))).toString('base64');
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><image width="256" height="256" href="data:image/png;base64,${icon}"/></svg>`;
 const png = new Resvg(svg, { fitTo: { mode: 'width', value: 256 } }).render().asPng();
@@ -78,7 +74,7 @@ await writeFile(join(stage, 'desktop/icon.ico'), Buffer.concat([header, png]));
 await writeFile(join(root, 'desktop/icon.png'), png); // Development desktop uses the same original vector mark.
 await writeFile(join(stage, 'package.json'), JSON.stringify({ name: `vesper-${product}`, productName: name, version: metadata.version, description: metadata.description, author: { name: 'true-utopian' }, license: 'MIT', main: 'desktop/main.cjs' }, null, 2));
 const resources = [{ from: payload, to: 'payload' }, { from: join(root, 'desktop/service.mjs'), to: 'runtime/service.mjs' }, { from: join(root, 'desktop/bundled-kernel.mjs'), to: 'runtime/bundled-kernel.mjs' }, { from: join(stage, 'desktop/icon.png'), to: 'icon.png' }];
-if (full) {
+if (full && !(platform==='linux'&&nativeKernel)) {
   if (platform !== 'win32') throw new Error('A full Linux installer requires a Linux Chromium cache. Use the light installer on this PC.');
   const record = JSON.parse(await readFile(join(root, '.workbench/local-engine/browser.json'), 'utf8'));
   resources.push({ from: dirname(record.executablePath), to: 'chromium', filter: ['**/*', '!**/*_tests.exe', '!**/*.pdb'] });
@@ -101,24 +97,27 @@ const artifacts = await build({ projectDir: stage, publish: 'never', targets: (p
     if (nativeKernel) {
       const target = join(context.appOutDir, 'resources/vesper-kernel');
       await mkdir(target, { recursive: false });
-      const ps = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0');
-      await promisify(execFile)(join(ps, 'powershell.exe'), ['-NoProfile', '-NonInteractive', '-File', join(root, 'scripts/prepare-native-runtime-access.ps1'), '-Directory', target], { windowsHide: true, env: { ...process.env, PSModulePath: join(ps, 'Modules') } });
-      await cp(nativeKernel.directory, target, { recursive: true, filter: path => !['sandbox-runtime-access.json', 'native-qualification.json', 'vesper-kernel.json'].includes(path.split(/[\\/]/).at(-1)) });
-      const executable = join(target, 'chrome.exe');
+      if(platform==='win32'){
+        const ps = join(process.env.SystemRoot, 'System32/WindowsPowerShell/v1.0');
+        await promisify(execFile)(join(ps, 'powershell.exe'), ['-NoProfile', '-NonInteractive', '-File', join(root, 'scripts/prepare-native-runtime-access.ps1'), '-Directory', target], { windowsHide: true, env: { ...process.env, PSModulePath: join(ps, 'Modules') } });
+      }
+      await cp(nativeKernel.directory, target, { recursive: true, verbatimSymlinks:true, filter: path => !['sandbox-runtime-access.json', 'native-qualification.json', 'vesper-kernel.json'].includes(path.split(/[\\/]/).at(-1)) });
+      const executable = join(target, nativeKernel.record.executable);
       await verifyNativeRuntime(executable, nativeKernel.record.runtimeFiles);
       const proof = await qualifyNativeKernel(executable);
       if (proof.state !== 'passed' || !proof.nativeProof || proof.executableSha256 !== nativeKernel.record.executableSha256) throw new Error(`Installer native qualification failed: ${proof.errors.join('; ')}`);
       await writeFile(join(output, `native-qualification-${metadata.version}.json`), JSON.stringify(proof, null, 2));
-      await writeFile(join(target, 'vesper-kernel.json'), JSON.stringify({ ...nativeKernel.record, qualification: { ...proof, executable: 'chrome.exe' } }, null, 2));
+      await writeFile(join(target, 'vesper-kernel.json'), JSON.stringify({ ...nativeKernel.record, qualification: { ...proof, executable: nativeKernel.record.executable } }, null, 2));
     }
   },
   linux: { icon: join(stage, 'desktop/icon.png'), category: 'Development', maintainer: 'true-utopian', target: ['deb'], synopsis: metadata.description },
 } });
 if (platform === 'linux') {
   const directory = join(output, 'linux-unpacked');
+  await prepareLinuxPortableInstaller(directory,{product,version:metadata.version});
   await createDeb({ directory, output, product, version: metadata.version, description: metadata.description });
   await tar.c({ cwd: directory, gzip: true, file: join(output, `Vesper-${product}-${metadata.version}-linux-x64.tar.gz`), portable: true, filter: (path, entry) => {
-    if (entry.isFile()) entry.mode = (entry.mode & ~0o7777) | (path.endsWith('/chrome-sandbox') ? 0o4755 : path.endsWith(`/vesper-${product}`) || /\.so(\.[0-9.]+)?$/.test(path) ? 0o755 : 0o644); return true;
+    if (entry.isFile()) entry.mode = linuxArchiveMode(path,entry.mode,product); return true;
   } }, ['.']);
 }
 const hashes = [];
