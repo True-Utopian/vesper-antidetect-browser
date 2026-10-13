@@ -148,8 +148,8 @@
         {
           "id": "browser-coherent-browser-personas",
           "name": "Coherent browser personas",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "in_progress",
+          "evidence": "docs/native-identity.md"
         },
         {
           "id": "browser-webgl-identity",
@@ -340,7 +340,7 @@
         {
           "id": "browser-native-linux-runtime",
           "name": "Native Linux runtime",
-          "state": "planned",
+          "state": "in_progress",
           "evidence": "docs/research/completion-gates.md"
         },
         {

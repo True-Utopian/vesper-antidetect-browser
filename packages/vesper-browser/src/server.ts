@@ -13,6 +13,7 @@ import { browserOpenApi } from './openapi.js';
 import { ProfileCatalog } from './catalog.js';
 import { environmentCapabilities } from './persona.js';
 import { fingerprintCapabilities } from './native-preferences.js';
+import { identityPresets } from './identity.js';
 
 export async function browserAccessToken(directory: string): Promise<string> {
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -99,6 +100,7 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
       if (url.pathname === '/api/capabilities' && request.method === 'GET') { json(response, 200, { product: 'Vesper Browser', author: 'true-utopian', version: vesperBrowserVersion, apiVersion, capabilities }); return; }
       if (url.pathname === '/api/session' && request.method === 'GET') { json(response, 200, { authenticated: true }); return; }
       if (url.pathname === '/api/openapi.json' && request.method === 'GET') { json(response, 200, browserOpenApi); return; }
+      if (url.pathname === '/api/identity/presets' && request.method === 'GET') { json(response, 200, identityPresets); return; }
       if (url.pathname === '/api/environment/capabilities' && request.method === 'GET') { json(response, 200, environmentCapabilities); return; }
       if (url.pathname === '/api/fingerprint/capabilities' && request.method === 'GET') { json(response, 200, fingerprintCapabilities); return; }
       if (url.pathname === '/api/engine/versions' && request.method === 'GET') { json(response,200,await browser.engineVersions()); return; }

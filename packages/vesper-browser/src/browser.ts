@@ -22,6 +22,7 @@ import { type EngineFamily, nativeExecutableHash, nativeProfileArguments, native
 import { ExtensionStore, validateExtensionIds } from './extensions.js';
 import { extensionLaunchPaths, profileLaunchPath } from './extension-launch.js';
 import { qualifyNativeKernel } from './native-qualification.mjs';
+import { auditIdentity, identityEnvironment, type IdentityPreset } from './identity.js';
 
 
 export interface LocalProfileSettings {
@@ -33,6 +34,7 @@ export interface LocalProfileSettings {
   startPages?: string[]; environment?: EnvironmentPolicy;
   engine?: EngineFamily;
   fingerprint?: FingerprintPolicy;
+  identityPreset?: IdentityPreset;
   extensions?: string[];
 }
 export interface LocalProfile {
@@ -223,24 +225,47 @@ export class VesperBrowser implements ProfileEngine {
   }
   async environmentReport(id: string) {
     const browser = await puppeteer.connect({ browserWSEndpoint: await this.connectionUrl(id),defaultViewport:null });
-    try { const page = (await browser.pages())[0]; if (!page) throw new Error('Open a tab before inspecting the environment');
-      const observed = await page.evaluate(() => {
+    try { const pages = await browser.pages();
+      // The native startup blank tab can remain open after an automation opens
+      // its destination. Prefer an existing web page without navigating it.
+      const page = pages.find(value => /^https?:\/\//.test(value.url())) ?? pages[0];
+      if (!page) throw new Error('Open a tab before inspecting the environment');
+      const observed = await page.evaluate(async () => {
         const n = navigator, canvas = document.createElement('canvas'), gl = canvas.getContext('webgl'), ext = gl?.getExtension('WEBGL_debug_renderer_info');
-        return { userAgent: n.userAgent, platform: n.platform, languages: n.languages, hardwareConcurrency: n.hardwareConcurrency, deviceMemory: (n as Navigator & { deviceMemory?: number }).deviceMemory, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: Intl.DateTimeFormat().resolvedOptions().locale, screen: { width: screen.width, height: screen.height, colorDepth: screen.colorDepth, pixelRatio: devicePixelRatio }, viewport: { width: innerWidth, height: innerHeight }, webGL: gl ? { vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR), renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) } : null };
+        const ua = (n as Navigator & {userAgentData?: {platform: string; brands: Array<{brand:string;version:string}>; mobile:boolean; getHighEntropyValues(values:string[]):Promise<Record<string,unknown>>}}).userAgentData;
+        let clientHints: any = null;
+        if (ua) { clientHints = {platform:ua.platform,brands:ua.brands,mobile:ua.mobile}; try { Object.assign(clientHints, await ua.getHighEntropyValues(['fullVersionList','platformVersion','architecture','bitness'])); } catch { /* Permissions policy may withhold high entropy hints. */ } }
+        return { userAgent: n.userAgent, platform: n.platform, languages: n.languages, clientHints, hardwareConcurrency: n.hardwareConcurrency, deviceMemory: (n as Navigator & { deviceMemory?: number }).deviceMemory, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: Intl.DateTimeFormat().resolvedOptions().locale, screen: { width: screen.width, height: screen.height, colorDepth: screen.colorDepth, pixelRatio: devicePixelRatio }, viewport: { width: innerWidth, height: innerHeight }, webGL: gl ? { vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR), renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) } : null };
       });
-      return { ...observed, fingerprint: await this.fingerprintReport(id) };
+      const profile = await this.readProfile(id);
+      return { ...observed, identity: auditIdentity(observed, profile.settings, await browser.version()), fingerprint: await this.fingerprintReport(id) };
     } finally { await browser.disconnect(); }
   }
   async fingerprintReport(id: string) {
     const profile = await this.readProfile(id), live = this.live.get(id);
+    let qualification: import('./native-kernel.js').NativeKernelReport | undefined;
+    if (profile.settings.engine === 'vesper') {
+      try { qualification = JSON.parse(await readFile(join(this.directory,'selected-native-kernel.json'),'utf8')).qualification; }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+    }
+    const qualified = qualification?.state === 'passed' && qualification.nativeProof === true;
+    const policy = profile.settings.fingerprint;
+    const enabled = policy?.protection !== 'off';
+    const coverage = [
+      {id:'RGBA8-canvas2d',requested:enabled,qualified:Boolean(qualified),scope:'RGBA8 canvas 2D exports; other pixel formats and graphics APIs are not covered'},
+      {id:'webgl-debug-restriction',requested:enabled && policy?.webgl==='restricted',qualified:Boolean(qualified && qualification?.surfacePolicies?.includes('webgl-debug-restriction')),scope:'WebGL debug renderer extension exposure; no GPU rendering or WebGPU identity replacement'},
+      {id:'offline-audio-seed',requested:enabled && policy?.audio==='seeded',qualified:Boolean(qualified && qualification?.surfacePolicies?.includes('offline-audio-seed')),scope:'Completed offline audio output; realtime audio and device enumeration are not covered'},
+      {id:'local-font-discovery',requested:enabled && policy?.fonts==='restricted',qualified:Boolean(qualified && qualification?.surfacePolicies?.includes('local-font-discovery')),scope:'Bounded local-family discovery, CSS local faces and enumeration; essential families remain'},
+    ].map(value=>({...value,active:Boolean(value.requested && value.qualified && live?.browser.connected)}));
     return {
       engine: profile.settings.engine ?? 'chromium', kernelVersion: profile.browserVersion ?? 'unknown',
       requestedProtection: ['brave','vesper'].includes(profile.settings.engine??'chromium') ? profile.settings.fingerprint?.protection ?? 'standard' : 'off',
       implementation: profile.settings.engine==='vesper'?'native-chromium-patches':profile.settings.engine === 'brave' ? 'upstream-native-brave' : 'upstream-chromium',
-      nativeKernel: profile.settings.engine==='vesper'?{ surfaces:['hardwareConcurrency','deviceMemory','RGBA8-canvas2d'], canvasSeed:'persisted-per-profile', cpuEnforcement:'process-launch' }:null,
+      identityPreset: profile.settings.identityPreset ?? 'custom',
+      nativeKernel: profile.settings.engine==='vesper'?{ surfaces:['hardwareConcurrency','deviceMemory','RGBA8-canvas2d',...qualification?.surfacePolicies??[]], canvasSeed:enabled?'persisted-per-profile':'disabled', cpuEnforcement:'process-launch', qualification:{state:qualification?.state??'unavailable',nativeProof:Boolean(qualified),executableSha256:qualification?.executableSha256??null,completedAt:qualification?.completedAt??null,verification:'Complete runtime is verified at profile launch; this report does not rehash a running kernel'},coverage }:null,
       capabilities: fingerprintCapabilities, targetPolicy: live?.policy.snapshot() ?? null,
       policyOwnerConnected: Boolean(live?.browser.connected),
-      limitations: ['Arbitrary device personas, WebGL, audio and font masking are not implemented.', 'Screen metrics are top-level CDP emulation; headed cross-process frames expose the native display. Headless uses a native virtual display.', 'Upstream Brave owns fingerprint seeds and per-site compatibility behavior.', 'Existing targets that executed during process boot are outside the pre-script guarantee.', 'Protection is the requested launch policy; sites and in-browser Shields changes can affect the actual result.'],
+      limitations: ['Arbitrary operating-system/GPU impersonation, WebGPU identity, realtime audio and media-device masking remain unimplemented.', 'WebGL, offline audio and font restrictions are bounded policies; their full surface families are not qualified.', 'Screen metrics are top-level CDP emulation; headed cross-process frames expose the native display. Headless uses a native virtual display.', 'Upstream Brave owns fingerprint seeds and per-site compatibility behavior.', 'Existing targets that executed during process boot are outside the pre-script guarantee.', 'Active means the qualified launch policy is owned by this controller; it is not proof of every site-visible result.'],
     };
   }
   async cookies(id: string, values?: unknown) {
@@ -250,7 +275,7 @@ export class VesperBrowser implements ProfileEngine {
     finally { await browser.disconnect(); }
   }
   validateSettings(settings: Record<string, unknown>): LocalProfileSettings {
-    const allowed = new Set(['name', 'storage', 'proxy', 'savedProxy', 'locale', 'timezone', 'viewport','folder','tags','notes','status','favorite','startPages','environment','engine','fingerprint','extensions']);
+    const allowed = new Set(['name', 'storage', 'proxy', 'savedProxy', 'locale', 'timezone', 'viewport','folder','tags','notes','status','favorite','startPages','environment','engine','fingerprint','extensions','identityPreset']);
     const unsupported = Object.keys(settings).filter(key => !allowed.has(key));
     if (unsupported.length) throw new Error(`Unsupported local profile settings: ${unsupported.join(', ')}. This engine does not support proprietary fingerprint definitions.`);
     if (settings.storage !== undefined && settings.storage !== 'local') throw new Error('Local engine requires local storage');
@@ -281,7 +306,10 @@ export class VesperBrowser implements ProfileEngine {
     if(settings.fingerprint&&settings.engine!=='vesper'&&['webgl','audio','fonts'].some(key=>key in (settings.fingerprint as object)))throw new Error('Additional native surface policies require Vesper');
     if (settings.fingerprint && (settings.fingerprint as FingerprintPolicy).protection === 'standard' && settings.engine !== 'brave' && settings.engine !== 'vesper') throw new Error('Native standard fingerprint protection requires Brave or Vesper');
     if((settings.environment as EnvironmentPolicy|undefined)?.deviceMemory!==undefined && settings.engine!=='vesper')throw new Error('Device memory policy requires the Vesper native kernel');
-    return structuredClone(settings) as LocalProfileSettings;
+    const validated = structuredClone(settings) as LocalProfileSettings;
+    const environment = identityEnvironment(settings.identityPreset, settings.engine, validated.environment);
+    if (environment !== undefined) validated.environment = environment;
+    return validated;
   }
   async create(settings: Record<string, unknown>): Promise<{ id: string }> {
     return this.serial('extension-catalog', () => this.serial('profile-create', () => this.createUnlocked(settings)));
@@ -319,7 +347,15 @@ export class VesperBrowser implements ProfileEngine {
     const { proxy: requestedProxy, ...rest } = settings;
       const profile = await this.readProfile(id), session = await this.session(id);
       if (session && isAlive(session.pid)) throw new Error('Stop the profile before changing settings');
-      const validated = this.validateSettings({ ...profile.settings, ...rest, ...(requestedProxy == null ? {} : { proxy: requestedProxy }) });
+      const merged = { ...profile.settings, ...rest, ...(requestedProxy == null ? {} : { proxy: requestedProxy }) };
+      // A preset-only change can replace values owned by the previous preset.
+      // Explicit environment edits are always checked rather than silently overwritten.
+      if (rest.identityPreset !== undefined && rest.identityPreset !== profile.settings.identityPreset && rest.identityPreset !== 'custom' && profile.settings.identityPreset && profile.settings.identityPreset !== 'custom' && !Object.hasOwn(rest,'environment')) {
+        merged.environment = {...profile.settings.environment};
+        delete (merged.environment as EnvironmentPolicy).hardwareConcurrency;
+        delete (merged.environment as EnvironmentPolicy).deviceMemory;
+      }
+      const validated = this.validateSettings(merged);
       await this.extensionStore.prepare(join(this.profileDir(id),'browser'),validated.extensions??[]);
       if (requestedProxy === null) { await this.vault.delete(id); profile.hasProxy = false; }
       else if (validated.proxy) { await this.vault.put(id, validated.proxy); profile.hasProxy = true; }
