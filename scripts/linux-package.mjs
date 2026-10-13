@@ -10,8 +10,8 @@ function arMember(name, data) {
 }
 export function linuxArchiveMode(path,mode,product){
   const name=path.replaceAll('\\','/').replace(/^\.\//,'');
-  const sandbox=name.endsWith('/chrome-sandbox')||/resources\/(vesper-kernel|chromium)\/chrome_sandbox$/.test(name);
-  const executable=name===`usr/bin/vesper-${product}`||name.endsWith(`/vesper-${product}`)||name==='install.sh'||name===`opt/vesper-${product}/install.sh`||/resources\/(vesper-kernel|chromium)\/chrome$/.test(name)||/\.so(\.[0-9.]+)?$/.test(name);
+  const sandbox=name==='chrome-sandbox'||name.endsWith('/chrome-sandbox')||/resources\/(vesper-kernel|chromium)\/chrome_sandbox$/.test(name);
+  const executable=!!(mode&0o111)||name===`vesper-${product}`||name===`usr/bin/vesper-${product}`||name.endsWith(`/vesper-${product}`)||name==='install.sh'||name===`opt/vesper-${product}/install.sh`||/resources\/(vesper-kernel|chromium)\/chrome$/.test(name)||/\.so(\.[0-9.]+)?$/.test(name);
   return (mode&~0o7777)|(sandbox?0o4755:executable?0o755:0o644);
 }
 export async function createDeb({ directory, output, product, version, description }) {

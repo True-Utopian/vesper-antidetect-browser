@@ -10,7 +10,7 @@ import {nativeExecutableHash,nativeRuntimeInventory} from '../packages/vesper-br
 // @ts-expect-error Build scripts are distributed as JavaScript.
 import {loadDesktopNativeBundle} from '../scripts/desktop-native-bundle.mjs';
 // @ts-expect-error Build scripts are distributed as JavaScript.
-import {createDeb} from '../scripts/linux-package.mjs';
+import {createDeb,linuxArchiveMode} from '../scripts/linux-package.mjs';
 // @ts-expect-error Build scripts are distributed as JavaScript.
 import {prepareLinuxPortableInstaller} from '../scripts/linux-portable-installer.mjs';
 
@@ -49,4 +49,13 @@ test('portable installer installs once, preserves neighboring data and refuses c
  const root=await realpath(await mkdtemp(join(tmpdir(),'vesper-user-install-')));t.after(()=>rm(root,{recursive:true,force:true}));const source=join(root,'source'),prefix=join(root,'installed');await mkdir(source);await writeFile(join(source,'vesper-browser'),'Owned executable fixture; never launched');await writeFile(join(root,'profiles.txt'),'Original private fixture data');await prepareLinuxPortableInstaller(source,{product:'browser',version:'1.0.0'});
  const run=()=>promisify(execFile)('sh',[join(source,'install.sh'),'--prefix',prefix,'--no-launcher']);await run();assert.equal(await readFile(join(prefix,'browser/1.0.0/vesper-browser'),'utf8'),'Owned executable fixture; never launched');await assert.rejects(run(),error=>{assert.equal((error as any).code,4);return true;});assert.equal(await readFile(join(root,'profiles.txt'),'utf8'),'Original private fixture data');
  await writeFile(join(source,'vesper-browser'),'Changed package');await assert.rejects(run(),error=>{assert.equal((error as any).code,3);return true;});assert.equal(await readFile(join(prefix,'browser/1.0.0/vesper-browser'),'utf8'),'Owned executable fixture; never launched');
+});
+
+test('portable archive retains its root launcher, sandbox helper and other upstream executables',async t=>{
+ const root=await realpath(await mkdtemp(join(tmpdir(),'vesper-native-portable-')));t.after(()=>rm(root,{recursive:true,force:true}));
+ for(const name of ['vesper-browser','chrome-sandbox','install.sh','settings.json'])await writeFile(join(root,name),'Owned archive fixture; never executed');
+ const archive=join(root,'portable.tar.gz');await tar.c({cwd:root,file:archive,gzip:true,portable:true,filter:(path:string,entry:any)=>{if(entry.isFile())entry.mode=linuxArchiveMode(path,entry.mode,'browser');return true;}},['vesper-browser','chrome-sandbox','install.sh','settings.json']);
+ const modes=new Map<string,number>();await tar.t({file:archive,onReadEntry:entry=>modes.set(entry.path.replace(/^\.\//,''),entry.mode??0)});
+ assert.equal(modes.get('vesper-browser')!&0o7777,0o755);assert.equal(modes.get('chrome-sandbox')!&0o7777,0o4755);assert.equal(modes.get('install.sh')!&0o7777,0o755);assert.equal(modes.get('settings.json')!&0o7777,0o644);
+ assert.equal(linuxArchiveMode('chrome_crashpad_handler',0o755,'browser')&0o7777,0o755);assert.equal(linuxArchiveMode('resources/vesper-kernel/another-native-helper',0o755,'browser')&0o7777,0o755);
 });
