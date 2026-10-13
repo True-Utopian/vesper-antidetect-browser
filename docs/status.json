@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-10-12",
+  "updated": "2026-10-13",
   "scope": "Named acceptance checks for the current local Vesper roadmap. Counts are not a percentage of vendor features, total engineering effort or detection resistance.",
   "definitions": {
     "verified": "Implemented and verified in the installed desktop pair.",
@@ -124,26 +124,26 @@
         {
           "id": "browser-native-cpu-getter",
           "name": "Native CPU getter",
-          "state": "in_progress",
-          "evidence": "native/chromium/README.md"
+          "state": "verified",
+          "evidence": "docs/native-kernel-qualification.md"
         },
         {
           "id": "browser-native-memory-client-hint",
           "name": "Native memory/client hint",
-          "state": "in_progress",
-          "evidence": "native/chromium/README.md"
+          "state": "verified",
+          "evidence": "docs/native-kernel-qualification.md"
         },
         {
           "id": "browser-native-rgba8-canvas",
           "name": "Native RGBA8 canvas",
-          "state": "in_progress",
-          "evidence": "native/chromium/README.md"
+          "state": "verified",
+          "evidence": "docs/native-kernel-qualification.md"
         },
         {
           "id": "browser-persisted-native-seed",
           "name": "Persisted native seed",
-          "state": "source_tested",
-          "evidence": "native/chromium/README.md"
+          "state": "verified",
+          "evidence": "docs/native-kernel-qualification.md"
         },
         {
           "id": "browser-coherent-browser-personas",
@@ -190,8 +190,8 @@
         {
           "id": "browser-custom-binary-qualification",
           "name": "Custom binary qualification",
-          "state": "in_progress",
-          "evidence": "native/chromium/README.md"
+          "state": "verified",
+          "evidence": "docs/native-kernel-qualification.md"
         }
       ]
     },
@@ -334,8 +334,8 @@
         {
           "id": "browser-custom-kernel-activation",
           "name": "Custom kernel activation",
-          "state": "in_progress",
-          "evidence": "native/chromium/README.md"
+          "state": "verified",
+          "evidence": "docs/native-kernel-qualification.md"
         },
         {
           "id": "browser-native-linux-runtime",

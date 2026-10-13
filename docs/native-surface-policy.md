@@ -17,13 +17,13 @@ Vesper Browser 0.4.6 and Workbench 0.5.8 expose three optional native privacy co
 - The expanded first-script fixture runs on the bundled stock browser across eight contexts. Native admission correctly rejects that stock browser. This proves fixture execution, not native masking.
 - Browser 0.4.6 and the signed Workbench 0.5.8 add-on passed 22 packaged Windows checks: six desktop/control checks, nine extended API checks and seven saved-proxy checks. This includes saving the three native settings and refusing an unqualified kernel. The production dependency audit recorded zero vulnerabilities.
 
-## Pending release checks
+## Native runtime acceptance
 
-The full native browser is still compiling. The surface patch is queued behind the active build, together with the canvas export-scope correction. Neither isolated compilation nor source tests qualify a native binary.
+The Windows native browser compiled with the surface patch and canvas export-scope correction. All 26 native unit executions, nine direct cases and nine copied-runtime cases passed. Guarded activation in the actual installed Browser and Workbench passed seven integration checks and saved a verified archive. Installed restart/archive/import identity passed four additional checks. See the [qualification record](native-kernel-qualification.md). Neither isolated compilation nor source tests alone qualify a native binary.
 
 Native acceptance requires unit tests, direct runtime checks, copied-runtime checks and installed Browser–Workbench integration. The runtime checks compare WebGL discovery/error behavior, offline sample reads/copies/events/restarts and independent seeds, and font metrics/local discovery against an upstream baseline. Each receipt must name the specific passing surface policies before those settings can launch.
 
-The actual Browser 0.4.6 / Workbench 0.5.8 upgrade passed nine extended API checks, seven saved-proxy checks, Python scheduling and three native-input/refusal checks. Direct Windows review confirmed the moth mark, fitted profile table, embedded Workbench and saved proxy run, and the proxy editor. This proves installed input forwarding and refusal of an unqualified kernel, not enforcement by a native binary. The installed Inspect dialog still falls back to JSON for its conditional schema; the source correction requires separate packaging and installed acceptance.
+The actual Browser 0.4.6 / Workbench 0.5.8 upgrade passed nine extended API checks, seven saved-proxy checks, Python scheduling and three native-input/refusal checks before native activation. Direct Windows review confirmed the moth mark, fitted profile table, embedded Workbench and saved proxy run, and the proxy editor. The subsequent native integration now proves enforcement of the bounded controls by the installed native binary. The installed Inspect dialog still falls back to JSON for its conditional schema; the source correction requires separate packaging and installed acceptance.
 
 The source Inspect form and its form/JSON round-trip passed a separate browser UI check. The new Linux inventory verifier passed three checks on Ubuntu, including shared-library symlinks, tampered/missing libraries and outside-directory rejection. These are not native enforcement or installed-package proofs.
 

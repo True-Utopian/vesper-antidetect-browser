@@ -1,0 +1,237 @@
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -3250,6 +3250,9 @@
+         switches::kReaderModeHeuristics,
+         sync_tab_context::kTabContextAllowedOriginSwitch,
+         translate::switches::kTranslateSecurityOrigin,
++        "vesper-audio-seed",
++        "vesper-webgl-policy",
++        "vesper-local-font-policy",
+         "vesper-canvas-seed",
+         "vesper-device-memory",
+         "vesper-hardware-concurrency",
+--- a/third_party/blink/public/common/BUILD.gn
++++ b/third_party/blink/public/common/BUILD.gn
+@@ -143,6 +143,8 @@
+     "custom_handlers/protocol_handler_utils.h",
+     "device_memory/approximated_device_memory.h",
+     "device_memory/vesper_native_scalar_policy.h",
++    "privacy/vesper_surface_algorithms.h",
++    "privacy/vesper_native_surface_policy.h",
+     "dom/dom_node_id.h",
+     "dom_storage/session_storage_namespace_id.h",
+     "features.h",
+--- /dev/null
++++ b/third_party/blink/public/common/privacy/vesper_native_surface_policy.h
+@@ -0,0 +1,24 @@
++// Copyright 2026 true-utopian
++// SPDX-License-Identifier: BSD-3-Clause
++#ifndef THIRD_PARTY_BLINK_PUBLIC_COMMON_PRIVACY_VESPER_NATIVE_SURFACE_POLICY_H_
++#define THIRD_PARTY_BLINK_PUBLIC_COMMON_PRIVACY_VESPER_NATIVE_SURFACE_POLICY_H_
++#include "base/command_line.h"
++#include "third_party/blink/public/common/privacy/vesper_surface_algorithms.h"
++namespace blink {
++struct VesperNativeSurfacePolicy {
++  bool restrict_webgl;
++  bool restrict_local_fonts;
++  std::optional<uint64_t> audio_seed;
++  static const VesperNativeSurfacePolicy& Get() {
++    static const VesperNativeSurfacePolicy policy = [] {
++      const auto* command = base::CommandLine::ForCurrentProcess();
++      return VesperNativeSurfacePolicy{
++          vesper::Restricted(command->GetSwitchValueASCII("vesper-webgl-policy")),
++          vesper::Restricted(command->GetSwitchValueASCII("vesper-local-font-policy")),
++          vesper::AudioSeed(command->GetSwitchValueASCII("vesper-audio-seed"))};
++    }();
++    return policy;
++  }
++};
++}  // namespace blink
++#endif
+--- /dev/null
++++ b/third_party/blink/public/common/privacy/vesper_surface_algorithms.h
+@@ -0,0 +1,82 @@
++// Copyright 2026 true-utopian
++// SPDX-License-Identifier: BSD-3-Clause
++#ifndef VESPER_SURFACE_ALGORITHMS_H_
++#define VESPER_SURFACE_ALGORITHMS_H_
++
++#include <bit>
++#include <cstddef>
++#include <cstdint>
++#include <optional>
++#include <span>
++#include <string>
++#include <string_view>
++
++namespace blink::vesper {
++
++// Invalid launch input retains upstream behavior independently per surface.
++inline bool Restricted(std::string_view mode) { return mode == "restricted"; }
++inline std::optional<uint64_t> AudioSeed(std::string_view text) {
++  if (text.size() != 16) return std::nullopt;
++  uint64_t value = 0;
++  for (char c : text) {
++    unsigned digit;
++    if (c >= '0' && c <= '9') digit = c - '0';
++    else if (c >= 'a' && c <= 'f') digit = c - 'a' + 10;
++    else return std::nullopt;
++    value = (value << 4) | digit;
++  }
++  return value;
++}
++
++// A keyed, idempotent mantissa projection, applied once to completed offline
++// buffers. Both channel read APIs keep their normal shared-buffer semantics.
++// Signed zero, subnormals, infinities and NaN payloads are preserved exactly.
++inline float OfflineSample(float sample, uint64_t seed, uint32_t channel,
++                           uint64_t frame) {
++  uint32_t bits = std::bit_cast<uint32_t>(sample);
++  const uint32_t exponent = bits & 0x7f800000U;
++  if (exponent == 0 || exponent == 0x7f800000U) return sample;
++  uint64_t key = seed ^ (frame * 0x9e3779b97f4a7c15ULL) ^
++                 (static_cast<uint64_t>(channel) * 0xd1b54a32d192ed03ULL);
++  key ^= key >> 30;
++  key *= 0xbf58476d1ce4e5b9ULL;
++  key ^= key >> 27;
++  key *= 0x94d049bb133111ebULL;
++  key ^= key >> 31;
++  return std::bit_cast<float>((bits & ~7U) | static_cast<uint32_t>(key & 7U));
++}
++inline void OfflineSamples(std::span<float> samples, uint64_t seed,
++                           uint32_t channel, uint64_t first_frame) {
++  for (size_t i = 0; i < samples.size(); ++i)
++    samples[i] = OfflineSample(samples[i], seed, channel, first_frame + i);
++}
++
++// A bounded local-family discovery policy, not a virtual cross-OS font pack.
++// CSS local() unique-face lookup is separately denied by the native hook.
++inline bool LocalFamilyAllowed(std::string_view name) {
++  if (!name.empty() && name.front() == '@') name.remove_prefix(1);
++  while (!name.empty() && (name.front() == ' ' || name.front() == '\t'))
++    name.remove_prefix(1);
++  while (!name.empty() && (name.back() == ' ' || name.back() == '\t'))
++    name.remove_suffix(1);
++  if (name.empty() || name.size() > 128) return false;
++  std::string normalized;
++  normalized.reserve(name.size());
++  for (unsigned char c : name) {
++    if (c < 32 || c > 126) return false;
++    normalized.push_back(c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c);
++  }
++  constexpr std::string_view families[] = {
++      "serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui",
++      "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded", "emoji",
++      "math", "fangsong", "arial", "times new roman", "courier new",
++      "segoe ui", "segoe ui emoji", "segoe ui symbol", "tahoma", "verdana",
++      "helvetica", "helvetica neue", "times", "courier", "noto sans",
++      "noto serif", "noto sans mono", "noto color emoji", "dejavu sans",
++      "dejavu serif", "dejavu sans mono", "liberation sans", "liberation serif",
++      "liberation mono"};
++  for (auto family : families) if (normalized == family) return true;
++  return false;
++}
++}  // namespace blink::vesper
++#endif  // VESPER_SURFACE_ALGORITHMS_H_
+--- a/third_party/blink/renderer/modules/font_access/font_access.cc
++++ b/third_party/blink/renderer/modules/font_access/font_access.cc
+@@ -3,6 +3,7 @@
+ // found in the LICENSE file.
+ 
+ #include "third_party/blink/renderer/modules/font_access/font_access.h"
++#include "third_party/blink/public/common/privacy/vesper_native_surface_policy.h"
+ 
+ #include <algorithm>
+ 
+@@ -79,6 +80,10 @@
+                                       "The execution context is not valid.");
+     return ScriptPromise<IDLSequence<FontMetadata>>();
+   }
++  if (VesperNativeSurfacePolicy::Get().restrict_local_fonts) {
++    exception_state.ThrowSecurityError("Local font access is disabled by the browser profile.");
++    return ScriptPromise<IDLSequence<FontMetadata>>();
++  }
+   ExecutionContext* context = ExecutionContext::From(script_state);
+   if (!context->IsFeatureEnabled(
+           network::mojom::PermissionsPolicyFeature::kLocalFonts,
+--- a/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
++++ b/third_party/blink/renderer/modules/webaudio/offline_audio_context.cc
+@@ -31,6 +31,7 @@
+ #include "base/metrics/histogram_macros.h"
+ #include "base/numerics/safe_conversions.h"
+ #include "media/base/audio_glitch_info.h"
++#include "third_party/blink/public/common/privacy/vesper_native_surface_policy.h"
+ #include "third_party/blink/public/platform/platform.h"
+ #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+ #include "third_party/blink/renderer/bindings/modules/v8/v8_offline_audio_context_options.h"
+@@ -554,6 +555,15 @@
+   Member<AudioBuffer> rendered_buffer = pending_render_targets_.TakeFirst();
+ 
+   CHECK(rendered_buffer);
++  if (const auto seed = VesperNativeSurfacePolicy::Get().audio_seed) {
++    for (unsigned channel = 0; channel < rendered_buffer->numberOfChannels(); ++channel) {
++      auto array = rendered_buffer->getChannelData(channel);
++      auto samples = array->AsSpan();
++      vesper::OfflineSamples(std::span<float>(samples.data(), samples.size()),
++                             *seed, channel, vesper_rendered_frames_);
++    }
++  }
++  vesper_rendered_frames_ += rendered_buffer->length();
+   resolver->Resolve(rendered_buffer.Get());
+ 
+   if (IsRenderComplete()) {
+--- a/third_party/blink/renderer/modules/webaudio/offline_audio_context.h
++++ b/third_party/blink/renderer/modules/webaudio/offline_audio_context.h
+@@ -190,6 +190,9 @@
+   // synchronously before rendering begins. Directly represents the
+   // specification's [[committed frames]] internal slot.
+   uint32_t committed_frames_ = 0;
++
++  // Domain for completed output chunks; independent of queued render targets.
++  uint64_t vesper_rendered_frames_ = 0;
+ };
+ 
+ }  // namespace blink
+--- a/third_party/blink/renderer/modules/webgl/webgl_debug_renderer_info.cc
++++ b/third_party/blink/renderer/modules/webgl/webgl_debug_renderer_info.cc
+@@ -25,6 +25,8 @@
+ 
+ #include "third_party/blink/renderer/modules/webgl/webgl_debug_renderer_info.h"
+ 
++#include "third_party/blink/public/common/privacy/vesper_native_surface_policy.h"
++
+ namespace blink {
+ 
+ WebGLDebugRendererInfo::WebGLDebugRendererInfo(
+@@ -37,7 +39,7 @@
+ }
+ 
+ bool WebGLDebugRendererInfo::Supported(WebGLRenderingContextBase*) {
+-  return true;
++  return !VesperNativeSurfacePolicy::Get().restrict_webgl;
+ }
+ 
+ const char* WebGLDebugRendererInfo::ExtensionName() {
+--- a/third_party/blink/renderer/platform/fonts/font_cache.cc
++++ b/third_party/blink/renderer/platform/fonts/font_cache.cc
+@@ -47,6 +47,7 @@
+ #include "build/build_config.h"
+ #include "skia/ext/font_utils.h"
+ #include "third_party/blink/public/common/features.h"
++#include "third_party/blink/public/common/privacy/vesper_native_surface_policy.h"
+ #include "third_party/blink/public/platform/platform.h"
+ #include "third_party/blink/public/platform/web_font_prewarmer.h"
+ #include "third_party/blink/renderer/platform/font_family_names.h"
+@@ -158,6 +159,12 @@
+     const FontFaceCreationParams& creation_params,
+     AlternateFontName alternate_font_name) {
+   TRACE_EVENT0("fonts", "FontCache::GetFontPlatformData");
++  if (VesperNativeSurfacePolicy::Get().restrict_local_fonts &&
++      (alternate_font_name == AlternateFontName::kLocalUniqueFace ||
++       (creation_params.CreationType() == kCreateFontByFamily &&
++        !vesper::LocalFamilyAllowed(creation_params.Family().Utf8())))) {
++    return nullptr;
++  }
+ 
+ #if !BUILDFLAG(IS_MAC)
+   if (creation_params.CreationType() == kCreateFontByFamily &&

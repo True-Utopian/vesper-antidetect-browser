@@ -5,7 +5,12 @@
   "upstream": "https://chromium.googlesource.com/chromium/src.git",
   "revision": "4afca57b57f531a92ffc15af0ffb5cf0038fb273",
   "chromiumVersion": "157.0.8100.0",
-  "patches": ["0001-native-scalars.patch", "0002-native-canvas.patch"],
+  "patches": [
+    "0001-native-scalars.patch",
+    "0002-native-canvas.patch",
+    "0003-canvas-export-scope.patch",
+    "0004-native-surface-policy.patch"
+  ],
   "gnArgs": {
     "is_debug": false,
     "is_component_build": true,
