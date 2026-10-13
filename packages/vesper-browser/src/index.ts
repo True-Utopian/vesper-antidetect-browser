@@ -17,6 +17,8 @@ export { environmentCapabilities, validateEnvironment } from './persona.js';
 export type { EnvironmentPolicy } from './persona.js';
 export { fingerprintCapabilities, validateFingerprint } from './native-preferences.js';
 export type { FingerprintPolicy } from './native-preferences.js';
+export { identityPresets, identityEnvironment, auditIdentity } from './identity.js';
+export type { IdentityPreset, IdentityObservation } from './identity.js';
 export type { TargetPolicyReport } from './target-policy.js';
 export type { EngineCanaryReport } from './engine-canary.js';
 export type { EngineFamily, NativeKernelReport, NativeRuntimeFile } from './native-kernel.js';

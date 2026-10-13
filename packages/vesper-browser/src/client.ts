@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { createReadStream } from 'node:fs';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import type { LocalProfile } from './browser.js';
+import type { LocalProfile, VesperBrowser } from './browser.js';
 import type { ProfileEngine } from './types.js';
 import { leaseKey } from './contract.js';
 
@@ -44,6 +44,9 @@ export class VesperBrowserClient implements ProfileEngine {
     const status = await this.json<{ available: boolean; message: string }>('/api/v1/status');
     if (!status.available) throw Object.assign(new Error(status.message), { status: 503 });
   }
+  async identityPresets() { return this.json<typeof import('./identity.js').identityPresets>('/api/v1/identity/presets'); }
+  async environmentReport(id: string) { return this.json<Awaited<ReturnType<VesperBrowser['environmentReport']>>>(this.route(id,'environment')); }
+  async fingerprintReport(id: string) { return this.json<Awaited<ReturnType<VesperBrowser['fingerprintReport']>>>(this.route(id,'fingerprint')); }
   async installBrowser(): Promise<string> { throw new Error('Install Chromium through the independent Vesper Browser service: vesper-browser install (stop the service first).'); }
   async create(settings: Record<string, unknown>) {
     const runId = typeof settings.name === 'string' ? /^run-([a-f0-9-]{36})$/.exec(settings.name)?.[1] : undefined;

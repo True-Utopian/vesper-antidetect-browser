@@ -58,10 +58,10 @@ export async function prepareNativePreferences(directory: string, settings: {
 }
 
 export const fingerprintCapabilities = {
-  implementation: 'upstream-native-brave', customVesperKernel: 'requires-local-build-and-direct-qualification',
+  implementation: 'engine-dependent-native-policies', customVesperKernel: 'requires-local-build-and-direct-qualification',
   engines: {
     chromium: { protection: ['off'], customNoise: false },
-    vesper: { protection: ['standard','off'], customNoise: true, surfaces: ['hardwareConcurrency','deviceMemory','RGBA8-canvas2d'], pendingSurfacePolicies: ['webgl-debug-restriction','offline-audio-seed','local-font-discovery'], availability: 'only-after-local-native-qualification' },
+    vesper: { protection: ['standard','off'], customNoise: true, surfaces: ['hardwareConcurrency','deviceMemory','RGBA8-canvas2d'], pendingSurfacePolicies: ['webgl-debug-restriction','offline-audio-seed','local-font-discovery'], surfaceQualification:'Each selected kernel must supply its own passing receipt; pendingSurfacePolicies names the admission requirements, not global missing implementations', availability: 'only-after-local-native-qualification' },
     brave: { protection: ['standard', 'off'], customNoise: false },
   },
   seedControl: 'vesper-persisted-per-profile', arbitraryDevicePersonas: false, guardedCDP: true,

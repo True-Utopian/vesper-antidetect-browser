@@ -36,7 +36,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Native memory/client hint | verified | [Evidence](../docs/native-kernel-qualification.md) |
 | Native RGBA8 canvas | verified | [Evidence](../docs/native-kernel-qualification.md) |
 | Persisted native seed | verified | [Evidence](../docs/native-kernel-qualification.md) |
-| Coherent browser personas | planned | [Evidence](../docs/research/completion-gates.md) |
+| Coherent browser personas | in progress | [Evidence](../docs/native-identity.md) |
 | WebGL identity | in progress | [Evidence](../docs/native-surface-policy.md) |
 | WebGPU identity | planned | [Evidence](../docs/research/completion-gates.md) |
 | Audio surfaces | in progress | [Evidence](../docs/native-surface-policy.md) |
@@ -80,7 +80,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Optional Brave engine | verified | [Evidence](../docs/validation.md) |
 | Staged engine canary | verified | [Evidence](../docs/validation.md) |
 | Custom kernel activation | verified | [Evidence](../docs/native-kernel-qualification.md) |
-| Native Linux runtime | planned | [Evidence](../docs/research/completion-gates.md) |
+| Native Linux runtime | in progress | [Evidence](../docs/research/completion-gates.md) |
 | Firefox engine | planned | [Evidence](../docs/research/completion-gates.md) |
 | Mobile/device engine | planned | [Evidence](../docs/research/completion-gates.md) |
 | Live profile synchronizer | planned | [Evidence](../docs/research/completion-gates.md) |

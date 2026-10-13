@@ -18,6 +18,9 @@ Automatic native-process-loss cleanup and normal Finish saving passed in the ins
 
 A public wiki, Vesper website, bundled local **API Docs** website/button and versioned Browser/Workbench guides are required, planned release work. [Documentation acceptance criteria](docs/documentation-roadmap.md).
 
+
+Native identity follow-up (13 October): Browser 0.4.8 / Workbench 0.5.11 source passes 206 tests (zero failures, two Windows environment skips). Bounded native/4-thread/8-thread hardware policies, observed-page consistency checks and qualification-aware surface reporting are implemented. Five fresh real-kernel integration checks and normal Browser/Inspect UI workflows passed in isolated stores. Windows installers are being qualified; the user’s installed pair remains 0.4.7 / 0.5.10 pending the idle/backup upgrade gate. Linux compilation, 26 native unit executions and all nine direct runtime cases passed after the explicitly approved workspace-only sandbox rule and an owned font dependency fixture. Copied-runtime, packaging and actual installed Linux acceptance remain pending. [Scope and API](docs/native-identity.md).
+
 ## Use Vesper
 
 Local profiles, folders, favorites, tags, notes, proxy routing, cookie tools, templates and reversible trash are available. Profiles are owned by Browser; Workbench uses the authenticated API and saves checksum-verified archives after automation completes. Both apps work with local storage and require no vendor subscription. Proxies are operator supplied.
