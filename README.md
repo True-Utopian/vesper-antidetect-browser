@@ -12,7 +12,7 @@
 
 <sub>Green means a named acceptance check passed; grey means pending. Squares visualize proportions, not additional checks. Percentages do not measure vendor parity or detection resistance. See the [evidence-linked checklist](docs/status.md).</sub>
 
-The installed Windows Browser 0.4.3 and Workbench 0.5.5 have passed profile lifecycle, extension storage, verified export/import, calendar/DST, SDK and real automation checks. **The custom kernel is still compiling: native tests and installed activation are pending.** WebGL/WebGPU, audio/fonts, coherent personas, additional engines and real Linux execution remain unfinished. [Measured validation](docs/validation.md) · [Completion gates](docs/research/completion-gates.md).
+The installed Windows Browser 0.4.7 and Workbench 0.5.9 passed profile lifecycle, extension storage, verified export/import, calendar/DST, SDK and real automation checks. The original Windows kernel passed 26 native unit executions, nine direct and nine copied-runtime cases, installed Browser–Workbench integration and persisted identity checks. Broader WebGL/WebGPU, realtime audio, coherent font packs, personas, additional engines and real Linux execution remain unfinished. [Native qualification and its limits](docs/native-kernel-qualification.md). [Measured validation](docs/validation.md) · [Completion gates](docs/research/completion-gates.md).
 
 ## Use Vesper
 
@@ -30,7 +30,7 @@ npm run check
 npm run desktop:browser
 ```
 
-Use `npm run package:windows` or `npm run package:linux` to build the desktop app. The light installer obtains a compiled upstream Chromium runtime when needed. The qualified custom-kernel runtime will be packaged separately once acceptance passes.
+Use `npm run package:windows` or `npm run package:linux` to build the desktop app. The light installer obtains a compiled upstream Chromium runtime when needed. The full installer can include a qualified custom kernel with `--full --native-kernel-manifest /path/to/vesper-kernel.json`. Copied-runtime qualification repeats during packaging; the guarded 0.4.7 / 0.5.9 installed upgrade and native/form checks passed locally. [Bundled engine and safe upgrades](docs/windows-native-installer.md).
 
 **End users do not need the Chromium source checkout.** The large checkout is only for developers compiling the native kernel; ordinary installers contain or obtain compiled browser files. [Native kernel build instructions](native/chromium/README.md).
 

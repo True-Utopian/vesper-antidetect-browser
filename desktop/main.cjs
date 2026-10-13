@@ -59,7 +59,8 @@ async function ensureBrowser() {
     return url;
   } catch(error) {if(error.code==='VESPER_UPGRADE_BUSY')throw error;}
   const engine = process.env.VESPER_BROWSER_EXECUTABLE || (app.isPackaged && manifest.bundledBrowser ? join(process.resourcesPath, 'chromium', process.platform === 'win32' ? 'chrome.exe' : 'chrome') : undefined);
-  return (await spawnService('browser', { VESPER_BROWSER_EXECUTABLE: engine || '', VESPER_BROWSER_HEADLESS: process.env.VESPER_BROWSER_HEADLESS || 'false' })).origin;
+  const bundledKernel = app.isPackaged && manifest.bundledNativeKernel ? join(process.resourcesPath, 'vesper-kernel', 'vesper-kernel.json') : '';
+  return (await spawnService('browser', { VESPER_BROWSER_EXECUTABLE: engine || '', VESPER_BUNDLED_KERNEL_MANIFEST: bundledKernel, VESPER_BROWSER_HEADLESS: process.env.VESPER_BROWSER_HEADLESS || 'false' })).origin;
 }
 async function start() {
   await mkdir(base, { recursive: true, mode: 0o700 });

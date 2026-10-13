@@ -25,6 +25,10 @@ if (product === 'workbench') {
 } else {
   const { VesperBrowser, browserAccessToken, createBrowserServer } = await import(pathToFileURL(join(payload, 'packages/vesper-browser/dist/index.js')).href);
   const browser = new VesperBrowser({ directory, executablePath: process.env.VESPER_BROWSER_EXECUTABLE, maxConcurrency: Number(process.env.VESPER_BROWSER_MAX_CONCURRENCY ?? 4), headless: process.env.VESPER_BROWSER_HEADLESS === 'true' });
+  if (process.env.VESPER_BUNDLED_KERNEL_MANIFEST) {
+    const { stageBundledKernel } = await import('./bundled-kernel.mjs');
+    await stageBundledKernel(browser, payload, process.env.VESPER_BUNDLED_KERNEL_MANIFEST);
+  }
   const token = await browserAccessToken(directory);
   const server = await createBrowserServer(browser, token, { shutdown: () => close() });
   let closing = false;

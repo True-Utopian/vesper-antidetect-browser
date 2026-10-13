@@ -1,6 +1,6 @@
 {
   "product": "browser",
   "name": "Vesper Browser",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "bundledBrowser": false
 }
