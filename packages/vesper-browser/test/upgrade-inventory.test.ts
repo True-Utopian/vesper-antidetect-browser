@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, readFile, realpath } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 // @ts-ignore Local JavaScript release tooling.
 import { hashPrivateInventory, validateResumeBackup } from '../../../scripts/upgrade-inventory.mjs';
 async function fixture(t: any) {
-  const root=await mkdtemp(join(tmpdir(),'vesper-inventory-contract-'));
+  const root=await realpath(await mkdtemp(join(tmpdir(),'vesper-inventory-contract-')));
   t.after(()=>rm(root,{recursive:true,force:true}));
   const entries=[];
   for(let i=0;i<24;i++){const path=`nested/${i}.bin`,bytes=Buffer.alloc(i*97,i);await mkdir(join(root,'nested'),{recursive:true});await writeFile(join(root,path),bytes);entries.push({path,bytes:bytes.length});}

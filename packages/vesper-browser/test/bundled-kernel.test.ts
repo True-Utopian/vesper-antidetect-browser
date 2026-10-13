@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, mkdir, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 // @ts-expect-error Desktop scripts are shipped as JavaScript.
@@ -8,7 +8,7 @@ import { stageBundledKernel } from '../../../desktop/bundled-kernel.mjs';
 import { nativeExecutableHash, nativeRuntimeInventory } from '../src/native-kernel.js';
 
 async function fixture(t: any) {
-  const directory = await mkdtemp(join(tmpdir(), 'vesper-bundled-contract-'));
+  const directory = await realpath(await mkdtemp(join(tmpdir(), 'vesper-bundled-contract-')));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const executable = join(directory, 'chrome.exe');
   await writeFile(executable, 'Owned fixture; never executed');
