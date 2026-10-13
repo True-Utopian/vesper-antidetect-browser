@@ -19,7 +19,7 @@ Automatic native-process-loss cleanup and normal Finish saving passed in the ins
 A public wiki, Vesper website, bundled local **API Docs** website/button and versioned Browser/Workbench guides are required, planned release work. [Documentation acceptance criteria](docs/documentation-roadmap.md).
 
 
-Native identity follow-up (13 October): current combined source passes 208 tests (zero failures, two Windows environment skips). Bounded native/4-thread/8-thread hardware policies, observed-page consistency checks and qualification-aware surface reporting are implemented. Five real-kernel identity checks passed in isolated stores. Windows Browser 0.4.8 / Workbench 0.5.11 installers passed 19 packaged pair checks and five standalone UI checks; the user's installed upgrade remains pending the normal-Quit/backup gate. The same Linux versions passed 34 installed checks, including seven separately reviewed UI checks. Only the named Linux runtime check moves to verified: **78 of 106** roadmap checks now pass. [Identity scope and API](docs/native-identity.md).
+Native identity follow-up (13 October): current combined source passes 208 tests (zero failures, two Windows environment skips). Bounded native/4-thread/8-thread hardware policies, observed-page consistency checks and qualification-aware surface reporting are implemented. Five real-kernel identity checks passed in isolated stores. Windows Browser 0.4.8 / Workbench 0.5.11 installers passed 19 packaged pair checks and five standalone UI checks; the actual installed Windows pair subsequently passed the guarded upgrade, nine API, seven proxy, six native identity and seven UI checks, Python scheduling and normal restart. The same Linux versions passed 34 installed checks, including seven separately reviewed UI checks. Only the named Linux runtime check moves to verified: **78 of 106** roadmap checks now pass. [Identity scope and API](docs/native-identity.md).
 
 ## Use Vesper
 
@@ -52,3 +52,5 @@ This repository contains Browser source, desktop host, original kernel patches a
 Independent requirements are based on public documentation and bounded read-only observations of locally installed software with REA. The [research ledger](docs/research/feature-ledger.md) records evidence and unknowns. Full proprietary engine internals and competitor parity are not claimed.
 
 MIT license. Vesper Browser and Vesper Workbench by true-utopian.
+
+Installed Windows acceptance (13 October): the 0.4.8 / 0.5.11 upgrade preserved a checksum-verified backup of 90,637 private files and all original profile settings. The native 4/4 and 8/8 presets, WebGL/audio/font restrictions and Browser-owned Workbench save passed against the actual installed pair. The aggregate release audit passes **14/15 gates**; the complete roadmap remains **78/106**. [Installed Windows checks and repeatable helper](docs/windows-installed-qualification.md).
