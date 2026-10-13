@@ -16,6 +16,8 @@ The installed Windows Browser 0.4.7 and Workbench 0.5.10 passed profile lifecycl
 
 Automatic native-process-loss cleanup and normal Finish saving passed in the installed 0.5.10 add-on. [Recovery scope and recent-write limitation](docs/native-process-recovery.md).
 
+A public wiki, Vesper website, bundled local **API Docs** website/button and versioned Browser/Workbench guides are required, planned release work. [Documentation acceptance criteria](docs/documentation-roadmap.md).
+
 ## Use Vesper
 
 Local profiles, folders, favorites, tags, notes, proxy routing, cookie tools, templates and reversible trash are available. Profiles are owned by Browser; Workbench uses the authenticated API and saves checksum-verified archives after automation completes. Both apps work with local storage and require no vendor subscription. Proxies are operator supplied.
