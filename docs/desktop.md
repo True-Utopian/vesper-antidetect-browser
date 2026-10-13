@@ -4,7 +4,7 @@ Original source by **true-utopian**, MIT licensed. Vesper Browser is the main pr
 
 ## Local artifacts
 
-`release/browser/win32` and `release/workbench/win32` contain assisted per-user Windows x64 NSIS installers. The full Windows builds include the tested free Chromium snapshot. They are unsigned development installers: no publisher certificate or hosted update service has been configured.
+`release/browser/win32` and `release/workbench/win32` contain assisted per-user Windows x64 NSIS installers. The full Windows builds include the tested free Chromium snapshot and can also bundle a qualified Vesper native kernel. Runtime hashes and fresh copied-native proof are checked during packaging. Installer/update and add-on manifests have local offline signatures; no Authenticode publisher certificate or hosted update service has been configured. [Bundled native engine and guarded upgrades](windows-native-installer.md).
 
 `release/browser/linux` and `release/workbench/linux` contain amd64 Debian packages and portable tar archives. The light Linux packages download free Chromium through **Install Chromium** in Browser. Package structure, executable permissions and the x64 ELF architecture are checked on this Windows PC. Native Ubuntu installation, library compatibility, desktop operation and sandbox behavior still require Linux qualification. WSL on this PC reports `REGDB_E_CLASSNOTREG`; no Linux execution claim is made. AppImage and other distributions/architectures are pending.
 

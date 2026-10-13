@@ -12,8 +12,9 @@ import { zipFiles } from './fixtures/extension-package.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i++)if(args[i]==='--activate')options.activate=true;
+else if(args[i]==='--packaged')options.packaged=true;
 else if(['--manifest','--data-root'].includes(args[i])&&args[i+1])options[args[i].slice(2)]=args[++i];
-else throw Error('Usage: activate-native-kernel.mjs --manifest <qualified vesper-kernel.json> --data-root <running desktop store> [--activate]');
+else throw Error('Usage: activate-native-kernel.mjs --manifest <qualified vesper-kernel.json> --data-root <running desktop store> [--activate] [--packaged]');
 assert.ok(options.manifest&&options['data-root'],'Provide the copied runtime manifest and running desktop data root');
 const manifestPath=await realpath(resolve(options.manifest)),manifest=JSON.parse(await readFile(manifestPath,'utf8'));
 const source=JSON.parse(await readFile(new URL('../native/chromium/kernel.json',import.meta.url),'utf8'));
@@ -44,7 +45,7 @@ async function idle(){
  assert.ok((await workbench.api('/api/v1/runs')).every(r=>!busy.has(r.state)&&!r.cleanupRequired),'Finish Workbench runs and cleanup before native activation');
  assert.ok((await workbench.api('/api/v1/schedules')).every(s=>!s.enabled&&!['running','admitting'].includes(s.state)),'Pause schedules before native activation');
 }
-await idle();const report={at:new Date().toISOString(),state:'preflight-passed',nativeProof:true,installedKernelChanged:false,executableSha256:manifest.executableSha256,checks:['Copied runtime/native proof/26 unit executions/patch hashes verified','Browser profiles, run ownership and schedules are idle'],errors:[]};
+await idle();const report={at:new Date().toISOString(),state:'preflight-passed',scope:options.packaged?'Isolated packaged desktop':'Actual installed desktop',actualInstalledProof:!options.packaged,nativeProof:true,installedKernelChanged:false,executableSha256:manifest.executableSha256,checks:['Copied runtime/native proof/26 unit executions/patch hashes verified','Browser profiles, run ownership and schedules are idle'],errors:[]};
 if(!options.activate){console.log(JSON.stringify(report));}
 else{
  const output=resolve('test-results/native-kernel');await mkdir(output,{recursive:true});const temporary=await mkdtemp(join(tmpdir(),'vesper-native-integration-'));
@@ -87,6 +88,6 @@ else{
   report.surfacePolicies=activation.qualification.surfacePolicies;
   report.checks.push('Fresh host native qualification and stopped-profile backup before activation','Workbench runs the exact native binary with page/startup-extension CPU 4, memory 4 and coherent canvas','Installed profile retains GPU/audio/font controls and enforces their owned page/startup-worker observations','Finish closes the fixture and saves a checksum-verified archive','Original profile settings and metadata preserved; leases released');report.state='passed';
  }catch(error){report.state='failed';report.errors.push(error.stack||String(error));process.exitCode=1;}
- finally{await connection?.disconnect().catch(()=>{});if(runId&&report.state!=='passed')await workbench.api('/api/v1/runs/'+runId+'/cancel','POST',{}).catch(error=>report.errors.push('Owned fixture cleanup: '+error.message));if(fixture)await new Promise(done=>fixture.close(done));const child=relative(await realpath(tmpdir()),await realpath(temporary));assert.ok(child.startsWith('vesper-native-integration-')&&!child.startsWith('..')&&!isAbsolute(child));await rm(temporary,{recursive:true,force:true});report.completedAt=new Date().toISOString();await writeFile(join(output,'installed-native-integration.json'),JSON.stringify(report,null,2));}
+ finally{await connection?.disconnect().catch(()=>{});if(runId&&report.state!=='passed')await workbench.api('/api/v1/runs/'+runId+'/cancel','POST',{}).catch(error=>report.errors.push('Owned fixture cleanup: '+error.message));if(fixture)await new Promise(done=>fixture.close(done));const child=relative(await realpath(tmpdir()),await realpath(temporary));assert.ok(child.startsWith('vesper-native-integration-')&&!child.startsWith('..')&&!isAbsolute(child));await rm(temporary,{recursive:true,force:true});report.completedAt=new Date().toISOString();await writeFile(join(output,options.packaged?'packaged-native-integration.json':'installed-native-integration.json'),JSON.stringify(report,null,2));}
  console.log(JSON.stringify({state:report.state,nativeProof:report.nativeProof,installedKernelChanged:report.installedKernelChanged,run:report.run,errors:report.errors}));
 }
