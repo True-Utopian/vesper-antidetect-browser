@@ -683,7 +683,7 @@
     },
     {
       "product": "Browser",
-      "name": "Documentation and website",
+      "name": "Docs",
       "checks": [
         {
           "id": "browser-public-wiki",
@@ -707,7 +707,7 @@
     },
     {
       "product": "Workbench",
-      "name": "Documentation",
+      "name": "Docs",
       "checks": [
         {
           "id": "workbench-user-developer-guides",

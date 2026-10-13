@@ -158,7 +158,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Capacity/performance benchmark | planned | [Evidence](../docs/research/completion-gates.md) |
 | Local roles and sharing | planned | [Evidence](../docs/research/completion-gates.md) |
 
-## Browser: Documentation and website
+## Browser: Docs
 
 | Acceptance check | State | Evidence |
 | --- | --- | --- |
@@ -166,7 +166,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Public Vesper website | planned | [Evidence](../docs/documentation-roadmap.md) |
 | Local API Docs website/button | planned | [Evidence](../docs/documentation-roadmap.md) |
 
-## Workbench: Documentation
+## Workbench: Docs
 
 | Acceptance check | State | Evidence |
 | --- | --- | --- |
