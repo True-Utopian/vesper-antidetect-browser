@@ -80,7 +80,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Optional Brave engine | verified | [Evidence](../docs/validation.md) |
 | Staged engine canary | verified | [Evidence](../docs/validation.md) |
 | Custom kernel activation | verified | [Evidence](../docs/native-kernel-qualification.md) |
-| Native Linux runtime | in progress | [Evidence](../docs/research/completion-gates.md) |
+| Native Linux runtime | verified | [Evidence](../docs/linux-native-qualification.md) |
 | Firefox engine | planned | [Evidence](../docs/research/completion-gates.md) |
 | Mobile/device engine | planned | [Evidence](../docs/research/completion-gates.md) |
 | Live profile synchronizer | planned | [Evidence](../docs/research/completion-gates.md) |
