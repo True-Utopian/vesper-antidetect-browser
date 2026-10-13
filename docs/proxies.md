@@ -1,9 +1,13 @@
 # Proxy providers and leases
 
-`ProxyManager` allocates a proxy for a run, verifies an HTTPS request through it, and reserves both its connection and observed exit IP. Share one manager instance across all runs in a workbench. Pass `lease.proxy` to Kameleo and expose only `lease.report` to the UI. **The lease's `proxy.extra` contains credentials.**
+The installed Browser proxy manager is described in [saved connections](proxy-inventory.md). Browser 0.4.7 and Workbench 0.5.10 passed **nine installed outage/recovery checks** on 13 October 2026 using the qualified Vesper native kernel. For both authenticated HTTP and SOCKS5, an upstream outage blocked existing and fresh-page HTTP navigation to an owned loopback origin that remained directly reachable. No direct browser request reached that origin. Restarting the same upstream restored routing in the same leased profile; Finish saved a checksum-verified archive and released the profile. Original profiles and proxy entries were unchanged.
+
+This qualifies bounded owned HTTP navigation, including SOCKS5 transport. It does not qualify whole-browser DNS/UDP/WebRTC/IPv6 capture, HTTPS/TLS outage behavior, unavailable-proxy startup, automatic rotation or provider-wide guarantees. Private receipt: `test-results/proxy-outage/installed.json`. The repeatable public helper is `scripts/qualify-installed-proxy-outage.mjs` in Vesper Workbench; it uses only owned fixtures and requires idle installed services.
+
+`ProxyManager` allocates a proxy for a run, verifies an HTTPS request through it, and reserves both its connection and observed exit IP. Share one manager instance across all runs in a workbench. Pass `lease.proxy` to the selected browser backend and expose only `lease.report` to the UI. **The lease's `proxy.extra` contains credentials.**
 
 ```ts
-import { ProxyManager } from 'kameleo-workbench/proxies';
+import { ProxyManager } from '@true-utopian/vesper-workbench/proxies';
 
 const proxies = new ProxyManager({ inventoryFile: './proxy-inventory.json' });
 const lease = await proxies.allocate({

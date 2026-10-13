@@ -8,11 +8,17 @@ function arMember(name, data) {
   const header = `${(name + '/').padEnd(16)}${'0'.padEnd(12)}${'0'.padEnd(6)}${'0'.padEnd(6)}${'100644'.padEnd(8)}${String(data.length).padEnd(10)}\x60\n`;
   return Buffer.concat([Buffer.from(header, 'ascii'), data, ...(data.length % 2 ? [Buffer.from('\n')] : [])]);
 }
+export function linuxArchiveMode(path,mode,product){
+  const name=path.replaceAll('\\','/').replace(/^\.\//,'');
+  const sandbox=name.endsWith('/chrome-sandbox')||/resources\/(vesper-kernel|chromium)\/chrome_sandbox$/.test(name);
+  const executable=name===`usr/bin/vesper-${product}`||name.endsWith(`/vesper-${product}`)||name==='install.sh'||name===`opt/vesper-${product}/install.sh`||/resources\/(vesper-kernel|chromium)\/chrome$/.test(name)||/\.so(\.[0-9.]+)?$/.test(name);
+  return (mode&~0o7777)|(sandbox?0o4755:executable?0o755:0o644);
+}
 export async function createDeb({ directory, output, product, version, description }) {
   const work = join(output, 'deb-stage'), control = join(work, 'control'), data = join(work, 'data');
   const packageName = `vesper-${product}`;
   await mkdir(control, { recursive: true }); await mkdir(join(data, 'opt'), { recursive: true });
-  await cp(directory, join(data, 'opt', packageName), { recursive: true });
+  await cp(directory, join(data, 'opt', packageName), { recursive: true, verbatimSymlinks:true });
   await mkdir(join(data, 'usr/share/applications'), { recursive: true }); await mkdir(join(data, 'usr/bin'), { recursive: true });
   await writeFile(join(control, 'control'), `Package: ${packageName}\nVersion: ${version}\nArchitecture: amd64\nMaintainer: true-utopian\nSection: devel\nPriority: optional\nDepends: libgtk-3-0, libnss3, libxss1, libasound2 | libasound2t64, libgbm1, libatk-bridge2.0-0, libdrm2, libxkbcommon0, libx11-xcb1, libxcb-dri3-0\nDescription: ${description}\n Open-source desktop application by true-utopian.\n`);
   await writeFile(join(data, 'usr/bin', packageName), `#!/bin/sh\nexec /opt/${packageName}/${packageName} "$@"\n`);
@@ -21,9 +27,7 @@ export async function createDeb({ directory, output, product, version, descripti
   await tar.c({ cwd: control, file: controlArchive, gzip: true, portable: true, noMtime: true }, ['control']);
   await tar.c({ cwd: data, file: dataArchive, gzip: true, portable: true, noMtime: true, filter: (_path, entry) => {
     if (entry.isFile()) {
-      const name = _path.replaceAll('\\', '/');
-      const permissions = name.endsWith('/chrome-sandbox') ? 0o4755 : name === `usr/bin/${packageName}` || name.endsWith(`/${packageName}`) || /\.so(\.[0-9.]+)?$/.test(name) ? 0o755 : 0o644;
-      entry.mode = (entry.mode & ~0o7777) | permissions;
+      entry.mode=linuxArchiveMode(_path,entry.mode,product);
     }
     return true;
   } }, ['opt', 'usr']);

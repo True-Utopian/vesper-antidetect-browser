@@ -226,7 +226,7 @@
         {
           "id": "browser-owned-outage-navigation",
           "name": "Owned outage navigation",
-          "state": "source_tested",
+          "state": "verified",
           "evidence": "docs/proxies.md"
         },
         {
