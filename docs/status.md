@@ -1,6 +1,6 @@
 # Status inventory
 
-Updated 2026-10-12.
+Updated 2026-10-13.
 
 Named acceptance checks for the current local Vesper roadmap. Counts are not a percentage of vendor features, total engineering effort or detection resistance.
 
@@ -32,10 +32,10 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Locale and timezone | verified | [Evidence](../docs/validation.md) |
 | New-target policy | verified | [Evidence](../docs/validation.md) |
 | Page CPU policy | verified | [Evidence](../docs/validation.md) |
-| Native CPU getter | in progress | [Evidence](../native/chromium/README.md) |
-| Native memory/client hint | in progress | [Evidence](../native/chromium/README.md) |
-| Native RGBA8 canvas | in progress | [Evidence](../native/chromium/README.md) |
-| Persisted native seed | source tested | [Evidence](../native/chromium/README.md) |
+| Native CPU getter | verified | [Evidence](../docs/native-kernel-qualification.md) |
+| Native memory/client hint | verified | [Evidence](../docs/native-kernel-qualification.md) |
+| Native RGBA8 canvas | verified | [Evidence](../docs/native-kernel-qualification.md) |
+| Persisted native seed | verified | [Evidence](../docs/native-kernel-qualification.md) |
 | Coherent browser personas | planned | [Evidence](../docs/research/completion-gates.md) |
 | WebGL identity | in progress | [Evidence](../docs/native-surface-policy.md) |
 | WebGPU identity | planned | [Evidence](../docs/research/completion-gates.md) |
@@ -43,7 +43,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Font exposure | in progress | [Evidence](../docs/native-surface-policy.md) |
 | Media devices | planned | [Evidence](../docs/research/completion-gates.md) |
 | Headed screen consistency | planned | [Evidence](../docs/research/completion-gates.md) |
-| Custom binary qualification | in progress | [Evidence](../native/chromium/README.md) |
+| Custom binary qualification | verified | [Evidence](../docs/native-kernel-qualification.md) |
 
 ## Browser: Connections
 
@@ -79,7 +79,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Windows installer | verified | [Evidence](../docs/validation.md) |
 | Optional Brave engine | verified | [Evidence](../docs/validation.md) |
 | Staged engine canary | verified | [Evidence](../docs/validation.md) |
-| Custom kernel activation | in progress | [Evidence](../native/chromium/README.md) |
+| Custom kernel activation | verified | [Evidence](../docs/native-kernel-qualification.md) |
 | Native Linux runtime | planned | [Evidence](../docs/research/completion-gates.md) |
 | Firefox engine | planned | [Evidence](../docs/research/completion-gates.md) |
 | Mobile/device engine | planned | [Evidence](../docs/research/completion-gates.md) |

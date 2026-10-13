@@ -1,0 +1,95 @@
+--- a/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc
++++ b/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.cc
+@@ -146,14 +146,16 @@
+     ToBlobFunctionType function_type,
+     base::TimeTicks start_time,
+     ExecutionContext* context,
+-    ScriptPromiseResolver<Blob>* resolver)
++    ScriptPromiseResolver<Blob>* resolver,
++    bool apply_vesper_protection)
+     : CanvasAsyncBlobCreator(image,
+                              options,
+                              function_type,
+                              nullptr,
+                              start_time,
+                              context,
+-                             resolver) {}
++                             resolver,
++                             apply_vesper_protection) {}
+ 
+ CanvasAsyncBlobCreator::CanvasAsyncBlobCreator(
+     scoped_refptr<StaticBitmapImage> image,
+@@ -162,7 +164,8 @@
+     V8BlobCallback* callback,
+     base::TimeTicks start_time,
+     ExecutionContext* context,
+-    ScriptPromiseResolver<Blob>* resolver)
++    ScriptPromiseResolver<Blob>* resolver,
++    bool apply_vesper_protection)
+     : fail_encoder_initialization_for_test_(false),
+       enforce_idle_encoding_for_test_(false),
+       context_(context),
+@@ -215,7 +218,8 @@
+ 
+     if (skia_image_->peekPixels(&src_data_)) {
+       if (const auto seed = VesperCanvasSeedFromCommandLine();
+-          seed && IsVesperCanvasReadbackFormat(src_data_)) {
++          apply_vesper_protection && seed &&
++          IsVesperCanvasReadbackFormat(src_data_)) {
+         auto protected_image = CreateVesperCanvasReadbackImage(src_data_, *seed);
+         if (protected_image && protected_image->peekPixels(&src_data_)) {
+           // src_data_ must be backed by this private image for idle encoding
+--- a/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.h
++++ b/third_party/blink/renderer/core/html/canvas/canvas_async_blob_creator.h
+@@ -53,14 +53,16 @@
+                          ToBlobFunctionType function_type,
+                          base::TimeTicks start_time,
+                          ExecutionContext*,
+-                         ScriptPromiseResolver<Blob>*);
++                         ScriptPromiseResolver<Blob>*,
++                         bool apply_vesper_protection = false);
+   CanvasAsyncBlobCreator(scoped_refptr<StaticBitmapImage>,
+                          const ImageEncodeOptions*,
+                          ToBlobFunctionType,
+                          V8BlobCallback*,
+                          base::TimeTicks start_time,
+                          ExecutionContext*,
+-                         ScriptPromiseResolver<Blob>* = nullptr);
++                         ScriptPromiseResolver<Blob>* = nullptr,
++                         bool apply_vesper_protection = false);
+   virtual ~CanvasAsyncBlobCreator();
+ 
+   // Methods are virtual for mocking in unit tests
+--- a/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc
++++ b/third_party/blink/renderer/core/html/canvas/html_canvas_element.cc
+@@ -1436,7 +1436,9 @@
+   scoped_refptr<StaticBitmapImage> image_bitmap = Snapshot(source_buffer);
+   if (image_bitmap) {
+     std::unique_ptr<ImageDataBuffer> data_buffer =
+-        ImageDataBuffer::CreateForCanvasReadback(image_bitmap);
++        IsRenderingContext2D()
++            ? ImageDataBuffer::CreateForCanvasReadback(image_bitmap)
++            : ImageDataBuffer::Create(image_bitmap);
+     if (!data_buffer)
+       return String("data:,");
+ 
+@@ -1544,7 +1546,7 @@
+     async_creator = MakeGarbageCollected<CanvasAsyncBlobCreator>(
+         image_bitmap, options,
+         CanvasAsyncBlobCreator::kHTMLCanvasToBlobCallback, callback, start_time,
+-        GetExecutionContext());
++        GetExecutionContext(), nullptr, IsRenderingContext2D());
+   }
+ 
+   if (async_creator) {
+--- a/third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.cc
++++ b/third_party/blink/renderer/core/offscreencanvas/offscreen_canvas.cc
+@@ -595,7 +595,7 @@
+     auto* execution_context = ExecutionContext::From(script_state);
+     auto* async_creator = MakeGarbageCollected<CanvasAsyncBlobCreator>(
+         image_bitmap, options, function_type, start_time, execution_context,
+-        resolver);
++        resolver, context_->IsRenderingContext2D());
+     async_creator->ScheduleAsyncBlobCreation(options->quality());
+     return resolver->Promise();
+   }

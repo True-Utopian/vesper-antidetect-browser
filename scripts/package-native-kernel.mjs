@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { copyFile, mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { arch, platform } from 'node:os';
@@ -31,10 +34,21 @@ for (const name of lines) {
   assert.ok((await stat(file)).isFile()); files.push({ path: inside.replaceAll('\\','/'), source: file });
 }
 assert.ok(files.some(file=>file.path === (platform()==='win32'?'chrome.exe':'chrome')));
-const output = join(root, 'release/kernel', `${platform()}-${arch()}`, `Vesper-kernel-${manifest.chromiumVersion}-${built.executableSha256.slice(0,16)}`);
+const baseOutput = join(root, 'release/kernel', `${platform()}-${arch()}`, `Vesper-kernel-${manifest.chromiumVersion}-${built.executableSha256.slice(0,16)}`);
+let output=baseOutput;
 // Never overwrite an existing qualified runtime. Failed copies remain available for inspection.
 await mkdir(dirname(output), { recursive: true });
-await mkdir(output, { recursive: false });
+try { await mkdir(output, { recursive: false }); }
+catch(error){
+  if(error.code!=='EEXIST')throw error;
+  output=baseOutput+'-attempt-'+randomUUID();
+  await mkdir(output,{recursive:false});
+}
+if(platform()==='win32'){
+  const windowsPowerShell=join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0');
+  const {stdout}=await promisify(execFile)(join(windowsPowerShell,'powershell.exe'),['-NoProfile','-NonInteractive','-File',join(root,'scripts/prepare-native-runtime-access.ps1'),'-Directory',output],{windowsHide:true,env:{...process.env,PSModulePath:join(windowsPowerShell,'Modules')}});
+  await writeFile(join(output,'sandbox-runtime-access.json'),stdout);
+}
 for (const file of files) { const destination=join(output,file.path); await mkdir(dirname(destination),{recursive:true}); await copyFile(file.source,destination); }
 const installedExecutable = join(output, platform()==='win32'?'chrome.exe':'chrome');
 assert.equal(await nativeExecutableHash(installedExecutable), built.executableSha256);
