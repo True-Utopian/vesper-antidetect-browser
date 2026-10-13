@@ -157,3 +157,17 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Forced-exit recovery matrix | planned | [Evidence](../docs/research/completion-gates.md) |
 | Capacity/performance benchmark | planned | [Evidence](../docs/research/completion-gates.md) |
 | Local roles and sharing | planned | [Evidence](../docs/research/completion-gates.md) |
+
+## Browser: Docs
+
+| Acceptance check | State | Evidence |
+| --- | --- | --- |
+| Public project wiki | planned | [Evidence](../docs/documentation-roadmap.md) |
+| Public Vesper website | planned | [Evidence](../docs/documentation-roadmap.md) |
+| Local API Docs website/button | planned | [Evidence](../docs/documentation-roadmap.md) |
+
+## Workbench: Docs
+
+| Acceptance check | State | Evidence |
+| --- | --- | --- |
+| Browser/Workbench user and developer guides | planned | [Evidence](../docs/documentation-roadmap.md) |

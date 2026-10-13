@@ -680,6 +680,42 @@
           "evidence": "docs/research/completion-gates.md"
         }
       ]
+    },
+    {
+      "product": "Browser",
+      "name": "Docs",
+      "checks": [
+        {
+          "id": "browser-public-wiki",
+          "name": "Public project wiki",
+          "state": "planned",
+          "evidence": "docs/documentation-roadmap.md"
+        },
+        {
+          "id": "browser-public-website",
+          "name": "Public Vesper website",
+          "state": "planned",
+          "evidence": "docs/documentation-roadmap.md"
+        },
+        {
+          "id": "browser-local-api-docs-site",
+          "name": "Local API Docs website/button",
+          "state": "planned",
+          "evidence": "docs/documentation-roadmap.md"
+        }
+      ]
+    },
+    {
+      "product": "Workbench",
+      "name": "Docs",
+      "checks": [
+        {
+          "id": "workbench-user-developer-guides",
+          "name": "Browser/Workbench user and developer guides",
+          "state": "planned",
+          "evidence": "docs/documentation-roadmap.md"
+        }
+      ]
     }
   ]
 }
