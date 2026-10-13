@@ -1,6 +1,6 @@
 # Linux installed-pair qualification inventory
 
-This inventory is prepared for the isolated non-root Linux build account. It is not a passing runtime receipt.
+This inventory was exercised in the isolated non-root Linux build account. Browser 0.4.8 / Workbench 0.5.11 passed the separate installed and UI review; see the [qualified scope](../linux-native-qualification.md). The inventory itself is not a runtime receipt.
 
 | Claim | Functional check | Visual evidence / limit |
 | --- | --- | --- |
@@ -10,10 +10,12 @@ This inventory is prepared for the isolated non-root Linux build account. It is 
 | Native automation saves correctly | Verify page and extension-startup policies and checksum-verified archive through the installed services | Inspect the saved run in embedded Workbench |
 | Native sandbox remains enabled | Inspect the installed browser's namespace and seccomp-BPF status | Never infer sandbox acceptance from a successful package build |
 | State survives restart | Normal Quit, restart the installed Browser, retain the signed enabled add-on, original owned profile and saved run | Inspect the reopened manager and Workbench |
-| Inspect remains a usable form | Select Inspect, review the 13 fields, exercise form/JSON/form and cancel using normal controls | Review the drawer, its scrolling fields and fixed footer at launch and a smaller native window size |
+| Inspect remains a usable form | Select Inspect, review the 14 fields, exercise form/JSON/form and cancel using normal controls | Review the drawer, its scrolling fields and fixed footer at launch and a smaller native window size |
 | Failure boundaries preserve data | A changed package is refused; an existing version is retained; wrong host or incomplete native evidence cannot bundle | These are source/installer checks, separate from vendor feature parity |
 
 The runtime helper retains its owned installation and asks for separate user-control and screenshot review before its final receipt can pass. Explore at least the cancelled Inspect path and disabled/reenabled Workbench behavior in the idle owned store. Record visible clipping, errors, incorrect bounds or failed controls as failures; document-level dimensions alone cannot sign off the UI.
+
+After normal restart, wait for each service descriptor and matching authenticated capabilities rather than treating the manager's ready workspace as Workbench readiness. The helper exposes only fixed capture/resize operations on its own window during the UI handshake. The release audit additionally requires an explicit passed installed visual review.
 
 All source and package checks, copied runtime cases, actual installer execution, native sandbox and installed integration must pass before marking Native Linux runtime verified. Never copy Windows profiles, credentials, release keys or raw vendor research to the build account.
 

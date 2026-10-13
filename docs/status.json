@@ -340,8 +340,8 @@
         {
           "id": "browser-native-linux-runtime",
           "name": "Native Linux runtime",
-          "state": "in_progress",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "verified",
+          "evidence": "docs/linux-native-qualification.md"
         },
         {
           "id": "browser-firefox-engine",
