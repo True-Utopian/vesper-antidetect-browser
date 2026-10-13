@@ -23,6 +23,7 @@ import { ExtensionStore, validateExtensionIds } from './extensions.js';
 import { extensionLaunchPaths, profileLaunchPath } from './extension-launch.js';
 import { qualifyNativeKernel } from './native-qualification.mjs';
 import { auditIdentity, identityEnvironment, type IdentityPreset } from './identity.js';
+import { graphicsArguments, type GraphicsBackend } from './graphics.js';
 
 
 export interface LocalProfileSettings {
@@ -43,7 +44,7 @@ export interface LocalProfile {
 }
 interface Session { pid: number; endpoint: string; nativeEndpoint?: string }
 interface Live { browser: PuppeteerBrowser; proxy?: ProxyServer; policy: TargetPolicy; gateway: Awaited<ReturnType<typeof createPolicyGateway>>; extensionCleanup: () => Promise<void> }
-export interface LocalEngineOptions { directory: string; executablePath?: string; headless?: boolean; buildId?: string; maxConcurrency?: number }
+export interface LocalEngineOptions { directory: string; executablePath?: string; headless?: boolean; graphicsBackend?: GraphicsBackend; buildId?: string; maxConcurrency?: number }
 const idPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const isAlive = (pid: number) => { try { process.kill(pid, 0); return true; } catch (e) { if ((e as NodeJS.ErrnoException).code === 'ESRCH') return false; throw e; } };
 const cacheNames = new Set(['Cache', 'Code Cache', 'GPUCache', 'ShaderCache', 'GrShaderCache', 'GraphiteDawnCache', 'DawnCache', 'Crashpad', 'BrowserMetrics', 'SingletonLock', 'SingletonCookie', 'SingletonSocket', 'DevToolsActivePort', 'component_crx_cache', 'SODA', 'SODALanguagePacks']);
@@ -67,6 +68,7 @@ export class VesperBrowser implements ProfileEngine {
   get engineBusy() { return this.engineMaintenance; }
   private unlock?: () => Promise<void>;
   constructor(private options: LocalEngineOptions) {
+    graphicsArguments(options.graphicsBackend);
     if (options.maxConcurrency !== undefined && (!Number.isInteger(options.maxConcurrency) || options.maxConcurrency < 1)) throw new Error('Local browser capacity must be a positive integer');
     this.directory = resolve(options.directory);
     this.vault = new InputVault(join(this.directory, 'secrets'));
@@ -397,7 +399,7 @@ export class VesperBrowser implements ProfileEngine {
       const installedExtensions = await this.extensionStore.prepare(join(this.profileDir(id),'browser'),profile.settings.extensions??[]);
       const launchExtensions = await extensionLaunchPaths(installedExtensions.paths); extensionCleanup = launchExtensions.cleanup;
       if (launchExtensions.paths !== installedExtensions.paths) await this.extensionStore.validateLaunchCopies(launchExtensions.paths, installedExtensions.records);
-      const args = ['--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update'];
+      const args = ['--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update', ...graphicsArguments(this.options.graphicsBackend)];
       if(launchExtensions.paths.length)args.push('--load-extension='+launchExtensions.paths.join(','),'--disable-extensions-except='+launchExtensions.paths.join(','));
       if (profile.settings.locale) args.push(`--lang=${profile.settings.locale}`);
       if (profile.settings.viewport) args.push(`--window-size=${profile.settings.viewport.width},${profile.settings.viewport.height}`);
