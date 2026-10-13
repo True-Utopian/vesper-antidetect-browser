@@ -262,7 +262,7 @@
         {
           "id": "browser-permissions-and-versions",
           "name": "Permissions and versions",
-          "state": "source_tested",
+          "state": "verified",
           "evidence": "docs/extensions.md"
         },
         {
@@ -274,7 +274,7 @@
         {
           "id": "browser-immutable-package-checks",
           "name": "Immutable package checks",
-          "state": "source_tested",
+          "state": "verified",
           "evidence": "docs/extensions.md"
         },
         {

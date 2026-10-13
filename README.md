@@ -12,7 +12,9 @@
 
 <sub>Green means a named acceptance check passed; grey means pending. Squares visualize proportions, not additional checks. Percentages do not measure vendor parity or detection resistance. See the [evidence-linked checklist](docs/status.md).</sub>
 
-The installed Windows Browser 0.4.7 and Workbench 0.5.9 passed profile lifecycle, extension storage, verified export/import, calendar/DST, SDK and real automation checks. The original Windows kernel passed 26 native unit executions, nine direct and nine copied-runtime cases, installed Browser–Workbench integration and persisted identity checks. Broader WebGL/WebGPU, realtime audio, coherent font packs, personas, additional engines and real Linux execution remain unfinished. [Native qualification and its limits](docs/native-kernel-qualification.md). [Measured validation](docs/validation.md) · [Completion gates](docs/research/completion-gates.md).
+The installed Windows Browser 0.4.7 and Workbench 0.5.10 passed profile lifecycle, extension storage, verified export/import, calendar/DST, SDK and real automation checks. The original Windows kernel passed 26 native unit executions, nine direct and nine copied-runtime cases, installed Browser–Workbench integration and persisted identity checks. Broader WebGL/WebGPU, realtime audio, coherent font packs, personas, additional engines and real Linux execution remain unfinished. [Native qualification and its limits](docs/native-kernel-qualification.md). [Measured validation](docs/validation.md) · [Completion gates](docs/research/completion-gates.md).
+
+Automatic native-process-loss cleanup and normal Finish saving passed in the installed 0.5.10 add-on. [Recovery scope and recent-write limitation](docs/native-process-recovery.md).
 
 ## Use Vesper
 
