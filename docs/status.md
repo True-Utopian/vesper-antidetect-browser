@@ -63,9 +63,9 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Acceptance check | State | Evidence |
 | --- | --- | --- |
 | Bounded MV3 ZIP import | verified | [Evidence](../docs/validation.md) |
-| Permissions and versions | source tested | [Evidence](../docs/extensions.md) |
+| Permissions and versions | verified | [Evidence](../docs/extensions.md) |
 | Per-profile assignment | verified | [Evidence](../docs/validation.md) |
-| Immutable package checks | source tested | [Evidence](../docs/extensions.md) |
+| Immutable package checks | verified | [Evidence](../docs/extensions.md) |
 | Restart storage persistence | verified | [Evidence](../docs/validation.md) |
 | Portable extension archive | verified | [Evidence](../docs/validation.md) |
 | Catalog removal | verified | [Evidence](../docs/validation.md) |

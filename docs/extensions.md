@@ -19,3 +19,9 @@ An extension worker restored at browser startup may execute before the CDP envir
 Run `npm run build` and `node scripts/qualify-local-extensions.mjs` for the owned loopback-only restart/archive/Workbench qualification. Its report is saved under `test-results/extensions`.
 
 Run `node scripts/qualify-extension-paths.mjs --executable /path/to/chrome` for the long-path/restart fixture. `scripts/qualify-installed-pair.mjs --extended --data-root /path/to/running-desktop-data` checks the installed pair, calendar client, extension-enabled automation and saved-profile import. It requires idle profiles and creates only owned qualification fixtures.
+
+## Installed permission and integrity qualification, 13 October 2026
+
+Browser 0.4.7 passed six actual-installation checks with two original local Manifest V3 packages. Its authenticated catalog reported both versions, the combined required/optional permission lists and host/content-script matches. Repeated import retained each immutable ID; changing the version produced a distinct ID. Independently assigned profiles executed their respective content-script versions through the installed native kernel.
+
+Changing a file in only the stopped owned fixture profile made both launch and export refuse the package; no refused archive remained. Restoring the exact original bytes permitted export, and the other version remained readable. Cleanup preserved the original catalog and all original profile metadata, stopped every fixture browser and trashed only owned profiles. The permission/version reporting and immutable-package acceptance checks are now installed verified. This does not qualify automatic version storage migration, extension permission grant workflows or every third-party extension. The raw receipt stays local at `test-results/extensions/installed-integrity.json`.
