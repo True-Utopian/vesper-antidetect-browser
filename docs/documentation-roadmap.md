@@ -4,15 +4,19 @@ Requested 13 October 2026. These are required release features; their individual
 
 ## Public project wiki
 
+**Published 3 November 2026:** [Project wiki](https://vesper-by-true-utopian.ivory-spoon-5461.chatgpt.site/wiki/index.html), with 13 chapters for Browser 0.4.10 / Workbench 0.5.15. [Measured acceptance](public-documentation.md).
+
 Maintain a navigable Vesper wiki for Browser and Workbench: installation, profiles, proxies, supported fingerprint policies and their limits, plug-in setup, automation, schedules, updates, troubleshooting and contribution guidance. Link it from both repositories. Review all examples against the supported release and provide a clear route for corrections.
 
 Acceptance: the published wiki is reachable from both project READMEs, its navigation and internal links work, and its Windows and Linux walkthroughs match tested releases. Do not label Linux instructions as qualified before runtime acceptance.
 
 ## Public Vesper website
 
+**Published 3 November 2026:** [Vesper by true-utopian](https://vesper-by-true-utopian.ivory-spoon-5461.chatgpt.site). Source, documentation, measured status and explicit public-download availability are included. [Measured acceptance](public-documentation.md).
+
 Create one coherent website by **true-utopian** for Vesper Browser and its optional Workbench plug-in. Include the product overview, honest feature/status information, source links, documentation/wiki navigation and release/download information. Identify unavailable downloads clearly and retain upstream license notices. Keep private application data out of the site.
 
-Acceptance: the deployed site works on desktop and mobile, keyboard navigation and links pass review, published downloads match accepted release manifests, and it makes no unsupported masking or vendor-parity claims. Creating this roadmap does not deploy a site.
+Acceptance: the deployed site works on desktop and mobile, keyboard navigation and links pass review, published downloads match accepted release manifests, and it makes no unsupported masking or vendor-parity claims. Deployment and source/CI evidence are tracked in the measured acceptance record.
 
 ## Local API documentation website
 

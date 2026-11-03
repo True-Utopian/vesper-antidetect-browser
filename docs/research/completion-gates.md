@@ -6,7 +6,7 @@ The current locally qualified pair is Browser **0.4.10** and signed Workbench **
 
 Source checks pass **239 tests**, zero failures and two explicit skips on each OS. Original native 26-unit/direct evidence is retained for unchanged binaries; packaging repeats nine copied-runtime cases. Production npm graphs are audited separately and have zero recorded vulnerabilities.
 
-Only the local API Docs milestone advances this update: **79/106** named checks. The wiki, public site and full user/developer guides remain planned. A complete release audit additionally requires current-version public main CI and every roadmap check. An installed working pair does not establish complete vendor parity or detection avoidance. The dated records below describe their original releases.
+The current inventory is **81/106** named checks. The localhost API Docs, public website and project wiki are accepted within their [documented scope](../public-documentation.md). Full user/developer guide acceptance remains planned. A complete release audit additionally requires current-version public main CI and every roadmap check. An installed working pair does not establish complete vendor parity or detection avoidance. The dated records below describe their original releases.
 
 | Area | Current evidence | Required before this area is complete |
 | --- | --- | --- |

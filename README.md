@@ -1,5 +1,7 @@
 <p align="center"><img src="public/vesper-icon.png" width="100" alt="Vesper moth emblem"></p>
 
+[**Website**](https://vesper-by-true-utopian.ivory-spoon-5461.chatgpt.site) · [**Project wiki**](https://vesper-by-true-utopian.ivory-spoon-5461.chatgpt.site/wiki/index.html) · [**Versioned handbook**](https://vesper-by-true-utopian.ivory-spoon-5461.chatgpt.site/v/0.4.10-0.5.15/wiki/index.html)
+
 # Vesper Browser
 
 **By true-utopian.** An open-source local browser profile manager with an original native Chromium kernel under development. [Vesper Workbench](https://github.com/True-Utopian/vesper-workbench) adds automation as an optional desktop plug-in.
@@ -14,11 +16,11 @@
 
 Browser **0.4.10** and signed Workbench **0.5.15** passed local installed qualification on **3 November 2026**. Windows passed 17 desktop/documentation/restart checks, nine API checks, seven proxy checks, six native identity checks and Python scheduling. Both Linux portable installers executed from freshly extracted archives; the installed pair passed the same integration checks, 17 desktop checks and namespace/seccomp sandbox verification under Xvfb with explicit software rendering. [Windows scope](docs/windows-installed-qualification.md) · [Linux scope](docs/linux-native-qualification.md).
 
-**API Docs** opens an offline localhost reference from Browser and Workbench, with searchable contracts, schemas and TypeScript/Python/cURL examples: 50 Browser operations and 40 Workbench operations. Private API authentication stays in place. The public wiki, website and complete versioned user/developer guides remain planned. [Local reference](docs/localhost-api-docs.md) · [Documentation roadmap](docs/documentation-roadmap.md).
+**API Docs** opens an offline localhost reference from Browser and Workbench, with searchable contracts, schemas and TypeScript/Python/cURL examples: 50 Browser operations and 40 Workbench operations. Private API authentication stays in place. The public website and 13-chapter project wiki are available. Complete user/developer guide acceptance remains planned. [Local reference](docs/localhost-api-docs.md) · [Documentation roadmap](docs/documentation-roadmap.md).
 
 Source checks pass **239 tests** with zero failures and two explicit skips on each operating system; the independent Browser checkout passes 78 tests. The unchanged custom kernels retain their 26 native unit executions and nine direct/copy cases; packaging repeats all nine copied cases, and installed native identity is tested against the actual applications. Broader WebGL/WebGPU, realtime/device audio, coherent font packs, arbitrary OS/GPU personas, Firefox/mobile and broader recovery/network qualification remain unfinished. [Native limits](docs/native-kernel-qualification.md) · [Measured validation](docs/validation.md).
 
-Only the local API Docs milestone advances in this update: **79 of 106** named acceptance checks. A passing installed pair does not complete the roadmap. Public source CI is tracked for each release; applications, runtime binaries, profiles, credentials and raw receipts remain private. Windows standalone Workbench UI was exercised from packaged output; a new standalone Workbench NSIS installation was not performed. Linux privileged Debian installation and physical GPU qualification remain pending.
+The local API Docs, public website and project wiki are now available: **81 of 106** named acceptance checks are verified. A passing installed pair does not complete the roadmap. Public source CI is tracked for each release; applications, runtime binaries, profiles, credentials and raw receipts remain private. Windows standalone Workbench UI was exercised from packaged output; a new standalone Workbench NSIS installation was not performed. Linux privileged Debian installation and physical GPU qualification remain pending.
 
 ## Use Vesper
 
