@@ -14,11 +14,15 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { loadDesktopNativeBundle } from './desktop-native-bundle.mjs';
 import { prepareLinuxPortableInstaller } from './linux-portable-installer.mjs';
+import { installPayloadDependencies } from './payload-dependencies.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2), product = args[0] ?? 'browser', platform = args[1] ?? process.platform;
 if (!['browser', 'workbench'].includes(product) || !['win32', 'linux'].includes(platform)) throw new Error('Usage: desktop-build.mjs <browser|workbench> <win32|linux> [--dir] [--full]');
-const full = args.includes('--full'), output = join(root, 'release', product, platform);
+const outputIndex = args.indexOf('--release-root');
+if (outputIndex >= 0 && (!args[outputIndex + 1] || args[outputIndex + 1].startsWith('--'))) throw new Error('Missing --release-root directory');
+const releaseRoot = outputIndex < 0 ? join(root, 'release') : resolve(args[outputIndex + 1]);
+const full = args.includes('--full'), output = join(releaseRoot, product, platform);
 const kernelIndex = args.indexOf('--native-kernel-manifest');
 let nativeKernel;
 if (kernelIndex >= 0) {
@@ -26,7 +30,9 @@ if (kernelIndex >= 0) {
   const pinned=JSON.parse(await readFile(join(root,'native/chromium/kernel.json'),'utf8'));
   nativeKernel=await loadDesktopNativeBundle(resolve(args[kernelIndex+1]),{platform,full,directoryOnly:args.includes('--dir'),revision:pinned.revision,chromiumVersion:pinned.chromiumVersion});
 }
-const stage = join(root, '.desktop-build', product, platform);
+const stageIndex = args.indexOf('--stage-root');
+if (stageIndex >= 0 && (!args[stageIndex + 1] || args[stageIndex + 1].startsWith('--'))) throw new Error('Missing --stage-root directory');
+const stage = join(stageIndex < 0 ? join(root, '.desktop-build') : resolve(args[stageIndex + 1]), product, platform);
 await mkdir(stage, { recursive: true }); await mkdir(output, { recursive: true });
 const metadata = JSON.parse(await readFile(join(root, product === 'browser' ? 'packages/vesper-browser/package.json' : 'package.json'), 'utf8'));
 const name = product === 'browser' ? 'Vesper Browser' : 'Vesper Workbench';
@@ -38,12 +44,9 @@ for (const entry of product === 'browser' ? ['packages/vesper-browser', 'docs', 
 const dependencies = product === 'browser' ? {} : { ...rootPackage.dependencies };
 delete dependencies['@kameleo/local-api-client'];
 dependencies['@true-utopian/vesper-browser'] = 'file:packages/vesper-browser';
-const payloadPackage = { name: `@true-utopian/vesper-${product}`, version: metadata.version, type: 'module', private: true, author: 'true-utopian', license: 'MIT', ...(product === 'workbench' ? { exports: rootPackage.exports } : {}), dependencies };
+const payloadPackage = { name: `@true-utopian/vesper-${product}`, version: metadata.version, type: 'module', private: true, author: 'true-utopian', license: 'MIT', ...(product === 'workbench' ? { exports: rootPackage.exports } : {}), dependencies, ...(rootPackage.overrides ? { overrides: rootPackage.overrides } : {}) };
 await writeFile(join(payload, 'package.json'), JSON.stringify(payloadPackage, null, 2));
-await new Promise((done, reject) => {
-  const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: payload, stdio: 'inherit', shell: process.platform === 'win32', windowsHide: true });
-  child.once('error', reject); child.once('exit', code => code === 0 ? done() : reject(new Error(`Payload dependency installation failed (${code})`)));
-});
+await installPayloadDependencies({ root, payload, metadata: payloadPackage, npmCache: resolve(process.env.VESPER_NPM_CACHE || join(root, '.workbench/npm-cache')) });
 // Keep the exact installed dependency manifest alongside its notices.
 const notices = [];
 async function collect(directory) {
@@ -62,7 +65,7 @@ async function collect(directory) {
 await collect(join(payload, 'node_modules'));
 await writeFile(join(payload, 'THIRD-PARTY-NOTICES.txt'), notices.join('\n'));
 await mkdir(join(stage, 'desktop'), { recursive: true });
-for (const file of ['main.cjs', 'service.mjs','bundled-kernel.mjs','service-process.cjs','preload.cjs','update-contract.cjs','seed-files.mjs','plugin-contract.cjs','workbench-host.cjs']) await cp(join(root, 'desktop', file), join(stage, 'desktop', file));
+for (const file of ['main.cjs', 'data-location.cjs', 'service.mjs','bundled-kernel.mjs','service-process.cjs','preload.cjs','update-contract.cjs','seed-files.mjs','plugin-contract.cjs','workbench-host.cjs']) await cp(join(root, 'desktop', file), join(stage, 'desktop', file));
 await writeFile(join(stage,'desktop/update-public-key.pem'),(await updateKey()).publicKey);
 await writeFile(join(stage, 'desktop/product.json'), JSON.stringify({ product, name, version: metadata.version, bundledBrowser: full, bundledBrowserPath: platform==='linux'&&nativeKernel?'vesper-kernel':'chromium', bundledNativeKernel: !!nativeKernel }));
 const icon = (await readFile(join(root, 'public/vesper-icon.png'))).toString('base64');
@@ -76,8 +79,11 @@ await writeFile(join(stage, 'package.json'), JSON.stringify({ name: `vesper-${pr
 const resources = [{ from: payload, to: 'payload' }, { from: join(root, 'desktop/service.mjs'), to: 'runtime/service.mjs' }, { from: join(root, 'desktop/bundled-kernel.mjs'), to: 'runtime/bundled-kernel.mjs' }, { from: join(stage, 'desktop/icon.png'), to: 'icon.png' }];
 if (full && !(platform==='linux'&&nativeKernel)) {
   if (platform !== 'win32') throw new Error('A full Linux installer requires a Linux Chromium cache. Use the light installer on this PC.');
-  const record = JSON.parse(await readFile(join(root, '.workbench/local-engine/browser.json'), 'utf8'));
-  resources.push({ from: dirname(record.executablePath), to: 'chromium', filter: ['**/*', '!**/*_tests.exe', '!**/*.pdb'] });
+  const upstreamIndex = args.indexOf('--upstream-browser');
+  if (upstreamIndex >= 0 && (!args[upstreamIndex + 1] || args[upstreamIndex + 1].startsWith('--'))) throw new Error('Missing --upstream-browser executable');
+  const upstream = upstreamIndex < 0 ? JSON.parse(await readFile(join(root, '.workbench/local-engine/browser.json'), 'utf8')).executablePath : resolve(args[upstreamIndex + 1]);
+  if (!(await stat(upstream)).isFile()) throw new Error('The upstream browser cache is unavailable');
+  resources.push({ from: dirname(upstream), to: 'chromium', filter: ['**/*', '!**/*_tests.exe', '!**/*.pdb'] });
 }
 const artifacts = await build({ projectDir: stage, publish: 'never', targets: (platform === 'win32' ? Platform.WINDOWS : Platform.LINUX).createTarget(args.includes('--dir') || platform === 'linux' ? 'dir' : 'nsis', Arch.x64), config: {
   appId: `io.true-utopian.vesper.${product}`, productName: name, executableName: `vesper-${product}`, electronVersion: rootPackage.devDependencies.electron,

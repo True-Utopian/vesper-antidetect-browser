@@ -14,6 +14,7 @@ import { ProfileCatalog } from './catalog.js';
 import { environmentCapabilities } from './persona.js';
 import { fingerprintCapabilities } from './native-preferences.js';
 import { identityPresets } from './identity.js';
+import { documentationAsset, documentationContext } from './documentation.js';
 
 export async function browserAccessToken(directory: string): Promise<string> {
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -79,6 +80,13 @@ export async function createBrowserServer(browser: VesperBrowser, token: string,
     response.setHeader('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'");
     const dispatch = async () => {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+      if (request.method === 'GET' && (url.pathname === '/docs' || url.pathname.startsWith('/docs/'))) {
+        if (url.pathname === '/docs/context.json') { json(response, 200, documentationContext('Browser', vesperBrowserVersion)); return; }
+        if (url.pathname === '/docs/openapi.json') { json(response, 200, browserOpenApi); return; }
+        const doc = await documentationAsset(url.pathname);
+        if (!doc) throw error(404, 'Documentation page not found.');
+        response.setHeader('content-type', doc.type); response.end(doc.body); return;
+      }
       url.pathname = url.pathname.replace(/^\/api\/v1\//, '/api/');
       const asset = assets.get(url.pathname);
       if (request.method === 'GET' && asset) {

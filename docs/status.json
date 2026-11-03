@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-10-13",
+  "updated": "2026-11-03",
   "scope": "Named acceptance checks for the current local Vesper roadmap. Counts are not a percentage of vendor features, total engineering effort or detection resistance.",
   "definitions": {
     "verified": "Implemented and verified in the installed desktop pair.",
@@ -700,8 +700,8 @@
         {
           "id": "browser-local-api-docs-site",
           "name": "Local API Docs website/button",
-          "state": "planned",
-          "evidence": "docs/documentation-roadmap.md"
+          "state": "verified",
+          "evidence": "docs/localhost-api-docs.md"
         }
       ]
     },

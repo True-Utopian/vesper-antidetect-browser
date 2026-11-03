@@ -1,14 +1,32 @@
 # Installed Windows acceptance
 
+## Current pair — 3 November 2026
+
+Vesper Browser **0.4.10** and signed Workbench **0.5.15** passed a guarded upgrade of the existing per-user Browser installation. The helper verified the local artifact signatures, created a fresh independently restorable checksum-verified backup, inspected pending managed flows on a disposable database copy, rechecked idle ownership and preserved original private bytes except the intended add-on registry. A completed older backup supplied immutable backup bytes; live private files were never hardlinked.
+
+The actual installed pair passed **17 desktop/documentation/restart checks**, **nine API/extension/calendar**, **seven proxy**, **six native identity** checks and Python scheduling. The native 4/4 and 8/8 policies agreed in first scripts, workers, frames and HTTP hints. Restart and executed archive import retained identity; Workbench saved a checksum-verified native archive. All original profiles and historical runs remained intact.
+
+Normal startup and restart succeeded without a data-root environment override. The shared private home-directory locator kept Browser and Workbench on the original canonical store across launcher-specific application-data paths. Both native API Docs controls opened the current credential-free localhost references. All nine current UI/reference screenshots were reviewed, including narrow navigation and the scrolling fourteen-field Inspect form with fixed actions.
+
+The installed production dependency graphs match their separately audited packaged graphs, with zero recorded npm vulnerabilities. The existing custom kernel was retained byte-for-byte and all runtime components verified. Its original 26 native unit executions and nine direct cases remain applicable; both packaging runs repeated nine copied-native cases. No C++ rebuild or change to the operator's active kernel selection was needed.
+
+Windows standalone Workbench passed **13 native UI/documentation/restart checks** from packaged output in a separate owned store. A new standalone Workbench NSIS installation was not performed. The signed add-on is the Workbench installation used in the actual Browser acceptance.
+
+From Workbench source, `scripts/qualify-desktop-docs.mjs --actual --default-store` repeats the registered-store desktop checks; add `--controls --integration --restart --dispatch`, the expected `--kernel-sha`, `--data-root` and private `--output` values. The guarded upgrade helper supports `--register-data-root` only with a full Browser installer upgrade. [Storage and upgrade details](portable-workspaces.md).
+
+The local API Docs milestone is accepted; the full roadmap remains incomplete. Broader fingerprint families, arbitrary OS/GPU personas, recovery/scale matrices, the wiki, public site and complete guides are separate work. Applications and raw receipts remain private.
+
+## Historical acceptance — 13 October 2026
+
 Vesper Browser **0.4.8** and its signed Workbench **0.5.11** add-on passed actual per-user installation and integration on 13 October 2026. This acceptance uses the existing desktop installation and private profile store. It is separate from the 19 packaged-pair checks and five standalone Workbench UI checks.
 
-## Upgrade and preservation
+### Upgrade and preservation
 
 The application quit normally after authenticated checks found no running profiles, active runs or enabled schedules. The guarded helper verified the packages against the installed trust key, copied and checksum-verified **90,637 private files / 1,363,047,371 bytes**, and inspected a disposable copy of the coordinator database. No active managed flows remained. It then applied the Browser installer to the existing per-user directory and atomically installed the add-on, retaining its enabled state.
 
 Every original private file remained byte-identical except the intended add-on registry update. Original profile settings and metadata also remained unchanged through the runtime tests. A normal Quit/restart retained both installed versions, the enabled add-on and all 31 saved/historical run records. Private backups, profiles, credentials and signing keys remain local.
 
-## Measured checks
+### Measured checks
 
 | Area | Actual installed result |
 | --- | --- |
@@ -22,7 +40,7 @@ The UI-created native run saved a **146,327-byte** archive with SHA-256 `b1eed52
 
 The Windows custom kernel remains SHA-256 `2bad582f23e0e67e8143fbc9906b9ddf0e4c2e48f897ac1459e5f7895ad5402f`. Its prior 26 native unit executions, nine direct cases, nine copied-runtime cases and guarded activation remain valid. These tests did not rebuild Chromium or replace its cached output.
 
-## Repeatable installed identity check
+### Repeatable installed identity check
 
 From the Workbench source checkout after building its clients, with the installed pair running and idle:
 
@@ -32,7 +50,7 @@ node scripts/qualify-installed-identity.mjs --data-root <installed-private-store
 
 The helper connects to the actual authenticated desktop services; it creates no substitute Browser or Workbench server. It creates owned loopback fixtures and profiles, executes restart/archive tests and an Inspect run, verifies original profile metadata, and trashes only its owned profiles. The resulting private receipt records matching versions and actual-installed proof. It must be run with a qualified native kernel, not upstream Chromium. The separate API and proxy helpers retain their own receipts.
 
-## Remaining work
+### Remaining work
 
 The release audit now passes **14 of 15 aggregate gates**; the full implemented-roadmap gate remains pending at **78 of 106** named checks. This release acceptance does not add roadmap features. Arbitrary OS/GPU personas, full WebGL/WebGPU, realtime/device audio, complete font/media coverage, broader network/recovery/scale matrices and the wiki/site/local API Docs requirements remain unresolved. It does not establish complete vendor parity, superior performance or detection avoidance.
 

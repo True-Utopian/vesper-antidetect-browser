@@ -1,6 +1,6 @@
 # Documentation, wiki and website roadmap
 
-Requested 13 October 2026. These are required release features, currently **planned**. Existing Markdown API references and OpenAPI JSON endpoints do not satisfy the local documentation website requirement.
+Requested 13 October 2026. These are required release features; their individual states are tracked in the [acceptance inventory](status.md). The bundled localhost reference has an [implementation and qualification record](localhost-api-docs.md). Public wiki, website and complete versioned user/developer guides have separate acceptance criteria below.
 
 ## Public project wiki
 
@@ -15,6 +15,8 @@ Create one coherent website by **true-utopian** for Vesper Browser and its optio
 Acceptance: the deployed site works on desktop and mobile, keyboard navigation and links pass review, published downloads match accepted release manifests, and it makes no unsupported masking or vendor-parity claims. Creating this roadmap does not deploy a site.
 
 ## Local API documentation website
+
+**Qualified 3 November 2026:** Browser 0.4.10 / Workbench 0.5.15 passed the installed Windows and Linux checks below. See the [measured acceptance record](localhost-api-docs.md). This completes only this named milestone.
 
 Add an **API Docs** button in the main Browser app, plus access from Workbench. Clicking it opens a documentation website on the running application's loopback address in the user's default browser, for example `http://127.0.0.1:<actual-port>/docs`. Discover the running service address; do not hard-code a development port. Bundle the documentation and its assets in Windows and Linux installers so it works offline without a CDN or vendor login.
 

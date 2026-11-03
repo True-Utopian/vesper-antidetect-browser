@@ -1,6 +1,6 @@
 {
   "name": "@true-utopian/vesper-browser",
-  "version": "0.4.8",
+  "version": "0.4.10",
   "description": "Vesper Browser by true-utopian: independent local Chromium profiles and proxy routing.",
   "author": "true-utopian",
   "type": "module",
@@ -35,7 +35,7 @@
     "@puppeteer/browsers": "3.2.3",
     "proper-lockfile": "4.1.2",
     "proxy-chain": "3.0.1",
-    "puppeteer-core": "25.12.0",
+    "puppeteer-core": "25.16.0",
     "tar": "7.5.22",
     "ws": "^8.22.0",
     "yauzl": "3.4.0"
