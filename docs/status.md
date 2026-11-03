@@ -162,8 +162,8 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 
 | Acceptance check | State | Evidence |
 | --- | --- | --- |
-| Public project wiki | planned | [Evidence](../docs/documentation-roadmap.md) |
-| Public Vesper website | planned | [Evidence](../docs/documentation-roadmap.md) |
+| Public project wiki | verified | [Evidence](../docs/public-documentation.md) |
+| Public Vesper website | verified | [Evidence](../docs/public-documentation.md) |
 | Local API Docs website/button | verified | [Evidence](../docs/localhost-api-docs.md) |
 
 ## Workbench: Docs

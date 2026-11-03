@@ -14,4 +14,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: node scripts/check-public-docs.mjs
       - run: node --import tsx --test test/linux-native-package.test.ts

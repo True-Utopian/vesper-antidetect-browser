@@ -688,14 +688,14 @@
         {
           "id": "browser-public-wiki",
           "name": "Public project wiki",
-          "state": "planned",
-          "evidence": "docs/documentation-roadmap.md"
+          "state": "verified",
+          "evidence": "docs/public-documentation.md"
         },
         {
           "id": "browser-public-website",
           "name": "Public Vesper website",
-          "state": "planned",
-          "evidence": "docs/documentation-roadmap.md"
+          "state": "verified",
+          "evidence": "docs/public-documentation.md"
         },
         {
           "id": "browser-local-api-docs-site",
