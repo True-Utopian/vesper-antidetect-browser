@@ -6,7 +6,7 @@ Original source by **true-utopian**, MIT licensed. Vesper Browser is the main pr
 
 `release/browser/win32` and `release/workbench/win32` contain assisted per-user Windows x64 NSIS installers. The full Windows builds include the tested free Chromium snapshot and can also bundle a qualified Vesper native kernel. Runtime hashes and fresh copied-native proof are checked during packaging. Installer/update and add-on manifests have local offline signatures; no Authenticode publisher certificate or hosted update service has been configured. [Bundled native engine and guarded upgrades](windows-native-installer.md).
 
-`release/browser/linux` and `release/workbench/linux` contain amd64 Debian packages and portable tar archives. The light Linux packages download free Chromium through **Install Chromium** in Browser. Package structure, executable permissions and the x64 ELF architecture are checked on this Windows PC. Native Ubuntu installation, library compatibility, desktop operation and sandbox behavior still require Linux qualification. WSL on this PC reports `REGDB_E_CLASSNOTREG`; no Linux execution claim is made. AppImage and other distributions/architectures are pending.
+`release/browser/linux` and `release/workbench/linux` contain amd64 Debian packages and portable tar archives. The qualified local portable release includes the Vesper native kernel. Browser 0.4.10 and Workbench 0.5.15 passed actual per-user portable installation, API/native/proxy integration, UI review and restart in an isolated Ubuntu account. The GPU-less host uses explicit software rendering with namespace/seccomp sandboxing enabled. Privileged Debian installation, physical GPU qualification, AppImage and other distributions/architectures remain pending. [Measured Linux scope](linux-native-qualification.md).
 
 Every artifact folder has `SHA256SUMS`. Npm dependency notices and their package lock travel with the service payload. Electron's licence and Chromium notices travel with its runtime. The Browser engine and Electron renderer are separate processes.
 
@@ -16,6 +16,8 @@ The default private application data root is:
 
 - Windows: `%APPDATA%/true-utopian/vesper`
 - Linux: `$XDG_DATA_HOME/true-utopian/vesper`, defaulting to `~/.local/share/true-utopian/vesper`
+
+An optional private `~/.vesper/desktop-location.json` selects an existing canonical store for both products. This avoids launcher-specific application-data redirection. Explicit `VESPER_DESKTOP_DATA_DIR` settings take precedence; an invalid saved location stops startup instead of creating an empty substitute. The guarded full Windows upgrade can register the original store after backup and preservation checks. [Details](portable-workspaces.md).
 
 The `browser` subfolder contains the profile store, proxy vault, access token, API journal and `service.json`. The `workbench` subfolder contains its access token, `service.json`, scripts, flows, drafts, schedules, exports, separate script/flow journals and persistent embedded PGlite database. Electron preference folders are separate. Existing repository `.workbench` / `.vesper` stores are not moved or overwritten automatically.
 
@@ -27,7 +29,9 @@ The default local coordinator runs one job at a time across the script and flow 
 
 ## Build from source
 
-Node.js 24 or newer is needed for source builds, not for installed desktop applications.
+Source builds are tested with Node.js 26. Workbench requires Node.js 26 or newer; Browser supports Node.js 24 or newer. Installed desktop applications include their own runtime.
+
+Moving a checkout to an exFAT drive requires ordinary dependency copies in place of workspace links. The build now maintains that copy automatically. Keep private app data, native sandbox runtime and signing/SSH keys on a filesystem with working permissions. [Portable workspace and private-data locations](portable-workspaces.md).
 
 ```sh
 npm ci

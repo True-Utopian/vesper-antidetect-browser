@@ -1,4 +1,5 @@
 export { VesperBrowser } from './browser.js';
+export { documentationAsset, documentationContext, versionedDocumentationContract } from './documentation.js';
 export { browserAccessToken, createBrowserServer } from './server.js';
 export { VesperBrowserClient } from './client.js';
 export type { VesperBrowserClientOptions } from './client.js';

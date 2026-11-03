@@ -1,6 +1,6 @@
 {
   "name": "@true-utopian/vesper-antidetect-browser",
-  "version": "0.4.8",
+  "version": "0.4.10",
   "description": "Vesper Browser by true-utopian: independent local profiles, native kernel and optional Workbench add-on.",
   "author": "true-utopian",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "packages/vesper-browser"
   ],
   "scripts": {
-    "build": "npm run build --workspace @true-utopian/vesper-browser",
+    "build": "npm run build --workspace @true-utopian/vesper-browser && node scripts/sync-browser-workspace.mjs",
     "typecheck": "npm run typecheck --workspace @true-utopian/vesper-browser",
     "test": "npm test --workspace @true-utopian/vesper-browser",
     "check": "npm run typecheck && npm test && npm run build && node scripts/readme-status.mjs --check",

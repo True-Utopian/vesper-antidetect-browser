@@ -5,14 +5,25 @@ const { forkService } = require('./service-process.cjs');
 const { join, resolve } = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { verifyLocalUpdate, hashFile } = require('./update-contract.cjs');
+const { resolveDesktopDataRoot } = require('./data-location.cjs');
 const manifest = require('./product.json');
 const product = manifest.product;
 app.setName(manifest.name);
 const dataHome = process.platform === 'linux' ? process.env.XDG_DATA_HOME || join(app.getPath('home'), '.local/share') : app.getPath('appData');
-const base = process.env.VESPER_DESKTOP_DATA_DIR || join(dataHome, 'true-utopian', 'vesper');
+const base = resolveDesktopDataRoot({ override: process.env.VESPER_DESKTOP_DATA_DIR, home: app.getPath('home'), defaultRoot: join(dataHome, 'true-utopian', 'vesper') });
 app.setPath('userData', join(base, `${product}-desktop`));
 const payload = app.isPackaged ? join(process.resourcesPath, 'payload') : resolve(__dirname, '..');
 let window, tray, quitting = false, workbench, browserOrigin, origin, pendingUpdate, quitOperation, pluginHost;
+const docsOwners = new Map();
+function registerDocsOwner(contents, serviceOrigin) {
+  docsOwners.set(contents, serviceOrigin);
+  contents.once('destroyed', () => docsOwners.delete(contents));
+}
+async function openApiDocs(serviceOrigin) {
+  const url = new URL('/docs', serviceOrigin);
+  if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.username || url.password) throw new Error('Documentation requires the running local service');
+  await shell.openExternal(url.href); return { opened: true };
+}
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => { window?.show(); window?.focus(); });
@@ -80,6 +91,7 @@ async function start() {
     origin = workbench.origin;
   } else origin = browserOrigin;
   window = new BrowserWindow({ width: 1380, height: 860, minWidth: 860, minHeight: 560, title: manifest.name, backgroundColor: '#181a20', icon: join(__dirname, 'icon.png'), webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true, preload: join(__dirname,'preload.cjs') } });
+  registerDocsOwner(window.webContents, origin);
   if(product==='browser')pluginHost=require('./workbench-host.cjs').createWorkbenchHost({base,payload,desktop:__dirname,window:()=>window,WebContentsView,dialog,api,tokenAt,spawnService,localDownloads,onService:value=>{workbench=value;}});
   const tokenFile = join(base, product, 'admin-token');
   const token = await tokenAt(tokenFile);
@@ -96,7 +108,7 @@ async function start() {
     { label: manifest.name, submenu: [ { label: `About ${manifest.name}`, click: () => dialog.showMessageBox(window, { title: manifest.name, message: `${manifest.name} ${manifest.version}`, detail: 'Open source. By true-utopian.\nLocal profiles and automation.' }) }, { label: 'Show data folder', click: () => shell.openPath(base) }, { type: 'separator' }, { label: 'Quit', click: () => void requestQuit().catch(reportQuitFailure) } ] },
     { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'togglefullscreen' }] },
-    { label: 'Vesper', submenu: [{ label: 'Open Browser manager', click: () => { if (product === 'browser') { window.show(); return; } void openBrowserManager(); } }, {label:'Show downloads',click:()=>shell.openPath(join(base,'downloads'))}, { label: 'Install local update', click: () => void chooseLocalUpdate().catch(error => dialog.showMessageBox(window,{type:'error',message:error.message})) }, { label: 'API reference', click: () => shell.openPath(join(payload, 'docs/api.md')) }] },
+    { label: 'Vesper', submenu: [{ label: 'Open Browser manager', click: () => { if (product === 'browser') { window.show(); return; } void openBrowserManager(); } }, {label:'Show downloads',click:()=>shell.openPath(join(base,'downloads'))}, { label: 'Install local update', click: () => void chooseLocalUpdate().catch(error => dialog.showMessageBox(window,{type:'error',message:error.message})) }, { label: 'API Docs', click: () => void openApiDocs(origin).catch(error => dialog.showMessageBox(window,{type:'error',message:error.message})) }] },
   ]);
   Menu.setApplicationMenu(menu);
   const image = nativeImage.createFromPath(join(__dirname, 'icon.png'));
@@ -111,6 +123,12 @@ ipcMain.handle('vesper:local-update',async event=>{
   if(event.sender!==window?.webContents || new URL(event.senderFrame.url).origin!==origin) throw new Error('Update request did not come from the local application');
   return chooseLocalUpdate();
 });
+ipcMain.handle('vesper:api-docs', async event => {
+  if (event.senderFrame !== event.sender.mainFrame) throw new Error('Documentation request requires the application main frame');
+  const serviceOrigin = pluginHost?.owns(event) ? workbench?.origin : docsOwners.get(event.sender);
+  if (!serviceOrigin || new URL(event.senderFrame.url).origin !== serviceOrigin) throw new Error('Documentation request did not come from the local application');
+  return openApiDocs(serviceOrigin);
+});
 ipcMain.handle('vesper:browser-manager',async event=>{
   if(pluginHost?.owns(event)){pluginHost.hide();window.webContents.send('vesper:navigate-profiles');return {opened:true};}
   if(event.sender!==window?.webContents || new URL(event.senderFrame.url).origin!==origin) throw new Error('Browser request did not come from the local application');
@@ -122,6 +140,7 @@ for(const [channel,action] of Object.entries({'plugin-status':()=>pluginHost.sta
 });
 async function openBrowserManager(){
   const manager=new BrowserWindow({width:1260,height:840,minWidth:680,minHeight:500,title:'Vesper Browser by true-utopian',icon:join(__dirname,'icon.png'),webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,preload:join(__dirname,'preload.cjs'),partition:'vesper-browser-manager'}});
+  registerDocsOwner(manager.webContents, browserOrigin);
   const token=await tokenAt(join(base,'browser/admin-token'));
   manager.webContents.session.webRequest.onBeforeSendHeaders({urls:[`${browserOrigin}/api/*`]},(details,callback)=>{if(new URL(details.url).origin===browserOrigin){for(const name of Object.keys(details.requestHeaders))if(name.toLowerCase()==='authorization')delete details.requestHeaders[name];details.requestHeaders.Authorization=`Bearer ${token}`;}callback({requestHeaders:details.requestHeaders});});
   manager.webContents.setWindowOpenHandler(()=>({action:'deny'}));manager.webContents.on('will-navigate',(event,url)=>{if(new URL(url).origin!==browserOrigin)event.preventDefault();});manager.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));localDownloads(manager,browserOrigin);await manager.loadURL(browserOrigin);

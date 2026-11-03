@@ -327,6 +327,11 @@ for (const selector of ['#sort-profiles', '#state-filter', '#page-size']) $(sele
 $('#sort-name').addEventListener('click', () => { $('#sort-profiles').value = 'name'; pageIndex = 0; render(); });
 $('#previous-page').addEventListener('click', () => { pageIndex--; render(); }); $('#next-page').addEventListener('click', () => { pageIndex++; render(); });
 $('#addons-view').addEventListener('click', () => void showAddons());
+async function openApiDocs() {
+  if (window.vesperDesktop?.openApiDocs) return window.vesperDesktop.openApiDocs();
+  window.open(new URL('/docs', location.origin).href, '_blank', 'noopener,noreferrer');
+}
+$('#api-docs').addEventListener('click', () => void openApiDocs().catch(error => { $('#action-error').textContent = userMessage(error); }));
 $('#workbench-view').addEventListener('click', () => void showWorkbench().catch(error => $('#action-error').textContent = userMessage(error)));
 $('#api-view').addEventListener('click', async () => {
   const { content } = toolPage('API access', 'Connect your own tools to this local Browser instance.', 'api-view');
@@ -335,7 +340,7 @@ $('#api-view').addEventListener('click', async () => {
     for (const [key, value] of [['Base URL', location.origin + '/api/v1'], ['API version', capabilities.apiVersion], ['Browser version', capabilities.version], ['Authentication', 'Bearer token']]) facts.append(element('dt', key), element('dd', String(value)));
     content.append(facts, element('p', 'Read the instance token through the Browser CLI. Tokens and profile cookies are private; keep them out of shared code.', 'hint'));
     const snippet = 'curl -H "Authorization: Bearer <your-token>" ' + location.origin + '/api/v1/profiles'; content.append(element('pre', snippet, 'api-snippet'));
-    toolButton(content, 'Copy base URL', () => copyText(location.origin + '/api/v1')); toolButton(content, 'Download OpenAPI schema', async () => downloadJSON(await api('/api/v1/openapi.json'), 'vesper-browser-openapi.json'));
+    toolButton(content, 'API Docs', openApiDocs); toolButton(content, 'Copy base URL', () => copyText(location.origin + '/api/v1')); toolButton(content, 'Download OpenAPI schema', async () => downloadJSON(await api('/api/v1/openapi.json'), 'vesper-browser-openapi.json'));
   } catch (error) { $('#browser-tool-page .tool-error').textContent = userMessage(error); }
 });
 $('#settings-view').addEventListener('click', async () => {

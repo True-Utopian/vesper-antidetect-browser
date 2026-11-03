@@ -9,7 +9,8 @@ import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import update from '../desktop/update-contract.cjs';
 import plugin from '../desktop/plugin-contract.cjs';
-import { hashPrivateInventory, validateResumeBackup } from './upgrade-inventory.mjs';
+import dataLocation from '../desktop/data-location.cjs';
+import { hashPrivateInventory, validateResumeBackup, validateBackupBase, createIncrementalBackup } from './upgrade-inventory.mjs';
 
 // Default is a read-only preflight. --apply performs the reviewed real upgrade;
 // it never force-closes processes, alters test installation registry locations,
@@ -17,8 +18,8 @@ import { hashPrivateInventory, validateResumeBackup } from './upgrade-inventory.
 const args = process.argv.slice(2), options = {};
 for (let index = 0; index < args.length; index++) {
   const name = args[index];
-  if (name === '--apply' || name === '--no-launch' || name === '--addon-only') options[name.slice(2)] = true;
-  else if (['--data-root', '--browser-install-root', '--workbench-install-root', '--release-root', '--addon-manifest', '--release-record', '--resume-backup'].includes(name) && args[index + 1] && !args[index + 1].startsWith('--')) options[name.slice(2)] = args[++index];
+  if (name === '--apply' || name === '--no-launch' || name === '--addon-only' || name === '--register-data-root') options[name.slice(2)] = true;
+  else if (['--data-root', '--browser-install-root', '--workbench-install-root', '--release-root', '--addon-manifest', '--release-record', '--resume-backup', '--backup-base'].includes(name) && args[index + 1] && !args[index + 1].startsWith('--')) options[name.slice(2)] = args[++index];
   else throw new Error(`Unknown or incomplete upgrade argument: ${name}`);
 }
 if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This local upgrade helper requires Windows x64');
@@ -30,10 +31,13 @@ const workbenchRoot = options['workbench-install-root'] ? await realpath(resolve
 const exec = promisify(execFile);
 const busy = new Set(['queued', 'preparing', 'starting', 'running', 'paused', 'awaiting_input', 'recovering', 'saving']);
 const report = { mode: options.apply ? 'apply' : 'dry-run', actualInstallationChanged: false, dataRoot: data, browserInstallRoot: browserRoot, workbenchInstallRoot: workbenchRoot ?? null, artifacts: {}, checks: [], steps: [] };
+if (options['register-data-root']) report.dataLocationPreflight = dataLocation.preflightDesktopDataRoot(data);
 if (options['addon-only']) assert.ok(options['addon-manifest'] && !workbenchRoot, 'Add-on-only upgrades require an explicit signed manifest and do not install standalone apps');
 else assert.ok(!options['addon-manifest'], 'An explicit add-on manifest requires --addon-only');
+assert.ok(!options['addon-only'] || !options['register-data-root'], 'Registering a shared data location requires the Browser installer');
 const progress = message => process.stderr.write(`[${new Date().toISOString()}] ${message}\n`);
 assert.ok(!options['resume-backup'] || options.apply, 'Resume a backup only during an explicit apply operation');
+assert.ok(!options['backup-base'] || options.apply && !options['resume-backup'], 'A completed base requires a new explicit apply backup, separate from interrupted backup resumption');
 
 async function optionalJson(file) { try { const metadata = await lstat(file); assert.ok(metadata.isFile() && !metadata.isSymbolicLink() && metadata.size < 1024 * 1024, 'Unsafe or oversized state metadata'); return JSON.parse(await readFile(file, 'utf8')); } catch (error) { if (error.code === 'ENOENT') return undefined; throw error; } }
 function alive(pid) { assert.ok(Number.isSafeInteger(pid) && pid > 0, 'Invalid persisted process ID'); try { process.kill(pid, 0); return true; } catch (error) { if (error.code === 'ESRCH') return false; throw error; } }
@@ -134,7 +138,7 @@ const workbenchVersion = workbenchRoot ? JSON.parse(await asarText(workbenchRoot
 const workbenchUpdate = options['addon-only'] ? undefined : await update.verifyLocalUpdate(join(release, `workbench/win32/Vesper-workbench-${versions.workbench}-win32-x64-full.exe.vesper-update.json`), trustedKey, { product: 'workbench', platform: 'win32', arch: 'x64', version: workbenchVersion });
 const addon = await plugin.verifyPlugin(options['addon-only'] ? resolve(options['addon-manifest']) : join(release, `addons/Vesper-workbench-${versions.workbench}.vplugin.tgz.vesper-plugin.json`), trustedKey, { platform: 'win32', arch: 'x64' });
 assert.ok(!installed || update.newer(addon.version, installed.version), 'Workbench add-on is not newer');
-for (const artifact of options['addon-only'] ? [] : [browserUpdate, workbenchUpdate, addon]) {
+for (const artifact of options['addon-only'] ? [addon] : [browserUpdate, workbenchUpdate, addon]) {
   const expected = releaseRecord.artifacts.find(item => resolve(release, item.path) === resolve(artifact.file));
   assert.equal(artifact.sha256, expected?.sha256, 'Artifact does not match packaged release acceptance evidence');
 }
@@ -150,6 +154,9 @@ if (!options.apply) {
   const lock = await open(join(dirname(data), 'vesper-desktop-upgrade.lock'), 'wx', 0o600);
   try {
     await guards();
+    // Reject unusable bases before inventorying the entire live store or
+    // creating an empty snapshot. The completed base is never modified.
+    const backupBase = options['backup-base'] ? await validateBackupBase(data, resolve(options['backup-base'])) : undefined;
     progress('Inventorying private files before the backup.');
     const before = await inventory(data);
     const backup = options['resume-backup'] ? await validateResumeBackup(data, resolve(options['resume-backup'])) : join(dirname(data), 'vesper-upgrade-backups', `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}`);
@@ -160,7 +167,13 @@ if (!options.apply) {
     } else {
       await mkdir(backup, { recursive: true, mode: 0o700 });
       progress(`Copying private backup: ${before.length} files, ${before.reduce((sum, file) => sum + file.bytes, 0)} bytes.`);
-      await cp(data, join(backup, 'data'), { recursive: true, dereference: false, errorOnExist: true, force: false });
+      if (backupBase) {
+        const base = backupBase;
+        progress('Creating a fresh complete snapshot using verified prior-backup bytes; live files are never hardlinked.');
+        report.backupMethod = 'independently-restorable-incremental';
+        report.backupBase = base.backup;
+        report.backupCopies = await createIncrementalBackup(data, join(backup, 'data'), before, base);
+      } else await cp(data, join(backup, 'data'), { recursive: true, dereference: false, errorOnExist: true, force: false });
     }
     progress('Verifying backup checksums.');
     assert.deepEqual(await inventory(join(backup, 'data')), before, 'Private backup checksum verification failed');
@@ -190,6 +203,11 @@ if (!options.apply) {
     assert.deepEqual(await hashPrivateInventory(data, preserved), preserved, 'An original private file changed unexpectedly');
     assert.equal((await plugin.readInstalled(data)).version, addon.version);
     report.checks.push('Backup verified', ...(browserUpdate ? ['Installed signed Browser version verified'] : []), 'Atomic signed add-on version verified', 'Original private data checksums preserved');
+    if (options['register-data-root']) {
+      assert.ok((await asarText(browserRoot, 'desktop/data-location.cjs')).includes('resolveDesktopDataRoot'), 'Installed Browser must support the shared data location');
+      report.dataLocation = dataLocation.registerDesktopDataRoot(data);
+      report.checks.push('Shared desktop data location registered without moving original profiles');
+    }
     await writeFile(join(backup, 'upgrade-result.json'), JSON.stringify(report, null, 2), { mode: 0o600 });
     if (!options['no-launch']) { progress('Launching the interactive Browser app with the preserved data store.'); const launchEnv = { ...process.env, VESPER_DESKTOP_DATA_DIR: data }; delete launchEnv.ELECTRON_RUN_AS_NODE; const child = spawn(join(browserRoot, 'vesper-browser.exe'), [], { env: launchEnv, detached: true, windowsHide: false, stdio: 'ignore' }); await new Promise((done, reject) => { child.once('spawn', done); child.once('error', reject); }); child.unref(); report.launched = true; }
     console.log(JSON.stringify(report, null, 2));
