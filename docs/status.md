@@ -115,7 +115,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Immutable publication | verified | [Evidence](../docs/api.md) |
 | Published run selection | verified | [Evidence](../docs/api.md) |
 | Interaction recorder | planned | [Evidence](../docs/research/completion-gates.md) |
-| Visual branches and loops | planned | [Evidence](../docs/research/completion-gates.md) |
+| Visual branches and loops | verified | [Evidence](../docs/visual-flow-qualification.md) |
 | Extraction authoring | planned | [Evidence](../docs/research/completion-gates.md) |
 | Recognition authoring | planned | [Evidence](../docs/research/completion-gates.md) |
 
