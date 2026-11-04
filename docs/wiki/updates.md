@@ -1,6 +1,6 @@
 # Updates, backups and recovery
 
-Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
+Browser 0.4.14 / Workbench 0.5.19. By **true-utopian**.
 
 Understand what an update verifies and what recovery still requires.
 

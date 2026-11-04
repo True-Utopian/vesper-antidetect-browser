@@ -1,6 +1,6 @@
 # Vesper project wiki
 
-By **true-utopian**. Browser 0.4.13 / Workbench 0.5.18. Reviewed 2026-11-03.
+By **true-utopian**. Browser 0.4.14 / Workbench 0.5.19. Reviewed 2026-11-03.
 
 Generated from docs/handbook.json and the bundled API guides by scripts/build-public-docs.mjs. Edit those sources and regenerate.
 
@@ -18,4 +18,4 @@ Generated from docs/handbook.json and the bundled API guides by scripts/build-pu
 - [Updates, backups and recovery](updates.md)
 - [Build and contribute](development.md)
 
-The complete user/developer guide walkthrough passed for this pair. Public installers are not available. See the [measured inventory](../status.md).
+The complete user/developer guide walkthrough milestone is verified; match your version to its recorded release evidence. Public installers are not available. See the [measured inventory](../status.md).
