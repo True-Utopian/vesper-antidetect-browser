@@ -3,6 +3,24 @@ import { lstat, realpath, readFile, readdir, mkdir, link, copyFile } from 'node:
 import { createHash } from 'node:crypto';
 import { isAbsolute, relative, resolve, dirname, join, basename, sep } from 'node:path';
 
+/** Enumerate large stores without spreading an entire subtree into call arguments. */
+export async function listPrivateFiles(root, { readDirectory = readdir, statEntry = lstat } = {}) {
+  const values = [], pending = [''];
+  while (pending.length) {
+    const directory = pending.pop();
+    for (const item of await readDirectory(join(root, directory), { withFileTypes: true })) {
+      const path = join(directory, item.name), metadata = await statEntry(join(root, path));
+      if (metadata.isSymbolicLink()) throw Error('The private data store contains a link; review it before upgrading');
+      if (metadata.isDirectory()) pending.push(path);
+      else {
+        if (!metadata.isFile()) throw Error('Unexpected private data entry');
+        values.push({ path, bytes: metadata.size });
+      }
+    }
+  }
+  return values.sort((a, b) => a.path.localeCompare(b.path));
+}
+
 /** An interrupted backup can be reused only after the caller rechecks all bytes. */
 async function privateBackup(dataDirectory, candidate) {
   const data = await realpath(dataDirectory), parent = join(dirname(data), 'vesper-upgrade-backups');

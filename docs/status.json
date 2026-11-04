@@ -622,8 +622,8 @@
         {
           "id": "workbench-durable-event-replay-coverage",
           "name": "Durable event replay coverage",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "verified",
+          "evidence": "docs/run-event-replay.md"
         }
       ]
     },

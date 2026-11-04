@@ -1,6 +1,6 @@
 # Your first Browser and Workbench run
 
-Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
+Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
 
 Follow the local workflow from a profile to a saved archive.
 
@@ -10,7 +10,7 @@ Launch Vesper Browser and open Profiles. Create a profile with a descriptive nam
 
 ## Add Workbench
 
-Open Add-ons → Install Workbench. Select the signed .vesper-plugin.json manifest beside its matching .vplugin.tgz archive for Workbench 0.5.17. Review the reported version and permissions. Browser verifies its pinned signing key, package size and digest. Open Workbench from the new sidebar entry. Close standalone Workbench first: the standalone app and add-on share one Workbench store and cannot own it simultaneously.
+Open Add-ons → Install Workbench. Select the signed .vesper-plugin.json manifest beside its matching .vplugin.tgz archive for Workbench 0.5.18. Review the reported version and permissions. Browser verifies its pinned signing key, package size and digest. Open Workbench from the new sidebar entry. Close standalone Workbench first: the standalone app and add-on share one Workbench store and cannot own it simultaneously.
 
 ![Vesper Workbench runs and archives workspace inside Browser](../assets/guide-workbench.png)
 

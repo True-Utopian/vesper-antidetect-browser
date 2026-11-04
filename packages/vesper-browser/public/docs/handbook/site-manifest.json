@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "release": {
-    "browser": "0.4.12",
-    "workbench": "0.5.17",
+    "browser": "0.4.13",
+    "workbench": "0.5.18",
     "reviewed": "2026-11-03"
   },
-  "versionPath": "v/0.4.12-0.5.17",
+  "versionPath": "v/0.4.13-0.5.18",
   "chapters": [
     {
       "id": "installation",
@@ -61,7 +61,7 @@
     }
   ],
   "counts": {
-    "verified": 81,
+    "verified": 82,
     "total": 106
   },
   "generatedFrom": [

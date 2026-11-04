@@ -10,7 +10,7 @@ import { pathToFileURL } from 'node:url';
 import update from '../desktop/update-contract.cjs';
 import plugin from '../desktop/plugin-contract.cjs';
 import dataLocation from '../desktop/data-location.cjs';
-import { hashPrivateInventory, validateResumeBackup, validateBackupBase, createIncrementalBackup } from './upgrade-inventory.mjs';
+import { hashPrivateInventory, listPrivateFiles, validateResumeBackup, validateBackupBase, createIncrementalBackup } from './upgrade-inventory.mjs';
 
 // Default is a read-only preflight. --apply performs the reviewed real upgrade;
 // it never force-closes processes, alters test installation registry locations,
@@ -56,16 +56,7 @@ async function asarText(installation, path) {
     return bytes.toString();
   } finally { await handle.close(); }
 }
-async function files(root, relativeRoot = '') {
-  const values = [];
-  for (const item of await readdir(join(root, relativeRoot), { withFileTypes: true })) {
-    const path = join(relativeRoot, item.name), full = join(root, path), metadata = await lstat(full);
-    assert.ok(!metadata.isSymbolicLink(), 'The private data store contains a link; review it before upgrading');
-    if (metadata.isDirectory()) values.push(...await files(root, path));
-    else { assert.ok(metadata.isFile(), 'Unexpected private data entry'); values.push({ path, bytes: metadata.size }); }
-  }
-  return values.sort((a, b) => a.path.localeCompare(b.path));
-}
+const files = listPrivateFiles;
 async function inventory(root) { return hashPrivateInventory(root, await files(root)); }
 async function processesStopped() {
   const command = "@(Get-CimInstance Win32_Process | Where-Object {$_.Name -match '^vesper-(browser|workbench)\\.exe$'} | Select-Object ProcessId,Name) | ConvertTo-Json -Compress";

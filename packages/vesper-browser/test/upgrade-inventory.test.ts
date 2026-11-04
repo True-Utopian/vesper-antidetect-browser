@@ -1,11 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm, readFile, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, readFile, realpath, symlink } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 // @ts-ignore Local JavaScript release tooling.
-import { hashPrivateInventory, validateResumeBackup } from '../../../scripts/upgrade-inventory.mjs';
+import { hashPrivateInventory, listPrivateFiles, validateResumeBackup } from '../../../scripts/upgrade-inventory.mjs';
+
+test('large nested inventories exceed the engine argument limit without dropping or duplicating files',async()=>{
+  const root=join(tmpdir(),'owned-large-inventory-model'),count=150000;
+  const readDirectory=async(path:string)=>path===root?[{name:'nested'}]:basename(path)==='nested'?[{name:'large'},{name:'empty.bin'}]:Array.from({length:count},(_,i)=>({name:`${i}.bin`}));
+  const statEntry=async(path:string)=>({isSymbolicLink:()=>false,isDirectory:()=>['nested','large'].includes(basename(path)),isFile:()=>true,size:basename(path)==='empty.bin'?0:17});
+  const rows=await listPrivateFiles(root,{readDirectory,statEntry});
+  assert.equal(rows.length,count+1);assert.equal(new Set(rows.map((r:any)=>r.path)).size,count+1);
+  assert.deepEqual(rows.find((r:any)=>r.path===join('nested','large','149999.bin')),{path:join('nested','large','149999.bin'),bytes:17});
+  assert.deepEqual(rows.find((r:any)=>r.path===join('nested','empty.bin')),{path:join('nested','empty.bin'),bytes:0});
+});
+test('real private enumeration retains file sizes and rejects linked subdirectories',async t=>{
+  const{root,entries}=await fixture(t);assert.deepEqual(await listPrivateFiles(root),entries.map(e=>({...e,path:join(...e.path.split('/'))})).sort((a,b)=>a.path.localeCompare(b.path)));
+  await symlink(join(root,'nested'),join(root,'linked'),process.platform==='win32'?'junction':'dir');
+  await assert.rejects(listPrivateFiles(root),/contains a link/);
+});
 async function fixture(t: any) {
   const root=await realpath(await mkdtemp(join(tmpdir(),'vesper-inventory-contract-')));
   t.after(()=>rm(root,{recursive:true,force:true}));

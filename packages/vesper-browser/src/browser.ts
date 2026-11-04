@@ -1,7 +1,7 @@
 import {cookieSnapshot,validateCookies} from './cookies.js';
 import { vesperBrowserVersion } from './version.js';
 import { randomUUID } from 'node:crypto';
-import { access, copyFile, mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
+import { access, copyFile, mkdir, open, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import puppeteer, { type Browser as PuppeteerBrowser } from 'puppeteer-core';
@@ -9,7 +9,7 @@ import { Browser, detectBrowserPlatform, install, resolveBuildId } from '@puppet
 import { Server as ProxyServer } from 'proxy-chain';
 import * as tar from 'tar';
 import type { ProfileEngine, ProxyChoice } from './types.js';
-import { InputVault, durableWrite } from './storage.js';
+import { InputVault, durableWrite, atomicRename } from './storage.js';
 import { ProxyCatalog, validateProxyChoice } from './proxies.js';
 import { acquireProcessLock } from './process-lock.js';
 import { validateEnvironment, environmentArguments, type EnvironmentPolicy } from './persona.js';
@@ -544,7 +544,7 @@ export class VesperBrowser implements ProfileEngine {
       const {extensions: importedExtensions,...initialSettings}=combined;
       created = await this.create(initialSettings);
       await rm(join(this.profileDir(created.id), 'browser'), { recursive: true });
-      await rename(join(staging, 'browser'), join(this.profileDir(created.id), 'browser'));
+      await atomicRename(join(staging, 'browser'), join(this.profileDir(created.id), 'browser'));
       if(importedExtensions!==undefined)await this.update(created.id,{extensions:importedExtensions});
       return created;
     } catch (error) { if (created) { await rm(this.profileDir(created.id), { recursive: true, force: true }); await this.vault.delete(created.id); } throw error; }

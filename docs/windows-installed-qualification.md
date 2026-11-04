@@ -1,6 +1,10 @@
 # Installed Windows acceptance
 
-## Current pair — 3 November 2026
+## Current local pair — 4 November 2026
+
+Browser **0.4.13** / Workbench **0.5.18** passed packaged and actual installed qualification on Windows and Linux, including 13 installed API checks with durable disconnected notification replay, native/proxy/Python integration, normal quit/restart and the exact SDK restore walkthrough. The full original stores were preserved behind independently verified backups. See [replay acceptance and limits](run-event-replay.md#qualified-local-release). Matching Windows/Linux source CI gates public acceptance. The full implemented roadmap remains pending.
+
+## Previous pair — 3 November 2026
 
 Vesper Browser **0.4.10** and signed Workbench **0.5.15** passed a guarded upgrade of the existing per-user Browser installation. The helper verified the local artifact signatures, created a fresh independently restorable checksum-verified backup, inspected pending managed flows on a disposable database copy, rechecked idle ownership and preserved original private bytes except the intended add-on registry. A completed older backup supplied immutable backup bytes; live private files were never hardlinked.
 

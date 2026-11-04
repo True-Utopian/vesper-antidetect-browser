@@ -1,5 +1,9 @@
 # Validation record
 
+## Current local pair — 4 November 2026
+
+Browser **0.4.13** / Workbench **0.5.18** passed packaged and actual installed qualification on Windows and Linux, including 13 installed API checks with durable disconnected notification replay, native/proxy/Python integration, normal quit/restart and the exact SDK restore walkthrough. The full original stores were preserved behind independently verified backups. See [replay acceptance and limits](run-event-replay.md#qualified-local-release). Matching Windows/Linux source CI gates public acceptance. The full implemented roadmap remains pending.
+
 ## Native surface source checks, 12 October 2026
 
 The [native surface policy record](native-surface-policy.md) records 177 passing source tests, 4,141 standalone C++ assertions and four isolated Chromium translation-unit compiles. Browser 0.4.6's editor passed five owned-store checks: policy save/reload, protection-off disablement, engine-specific visibility and reviewed viewport fit. Workbench 0.5.8 forwards the same settings through Inspect. These checks do not qualify a custom native browser or the new installed desktop pair; their release gates remain pending.

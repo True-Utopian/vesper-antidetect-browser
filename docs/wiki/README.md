@@ -1,6 +1,6 @@
 # Vesper project wiki
 
-By **true-utopian**. Browser 0.4.12 / Workbench 0.5.17. Reviewed 2026-11-03.
+By **true-utopian**. Browser 0.4.13 / Workbench 0.5.18. Reviewed 2026-11-03.
 
 Generated from docs/handbook.json and the bundled API guides by scripts/build-public-docs.mjs. Edit those sources and regenerate.
 

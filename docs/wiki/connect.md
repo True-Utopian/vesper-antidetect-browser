@@ -1,6 +1,6 @@
 # Connect to the local API
 
-Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
+Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
 
 Discover the service and keep authentication private.
 

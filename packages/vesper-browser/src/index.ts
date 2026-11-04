@@ -14,6 +14,7 @@ export type { ProfileEngine, ProxyChoice } from './types.js';
 export type { SavedProxy } from './proxies.js';
 export { AdmissionJournal, leaseKey } from './contract.js';
 export { acquireProcessLock } from './process-lock.js';
+export { durableWrite, atomicRename } from './storage.js';
 export { environmentCapabilities, validateEnvironment } from './persona.js';
 export type { EnvironmentPolicy } from './persona.js';
 export { fingerprintCapabilities, validateFingerprint } from './native-preferences.js';

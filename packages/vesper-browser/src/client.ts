@@ -30,7 +30,8 @@ export class VesperBrowserClient implements ProfileEngine {
     const token = (await readFile(this.options.tokenFile, 'utf8')).trim();
     if (!/^[A-Za-z0-9_-]{43,}$/.test(token)) throw new Error('Invalid Browser token file');
     const id = /^\/api\/v1\/profiles\/([a-f0-9-]{36})/.exec(path)?.[1], owner = id ? this.owners.get(id) : undefined;
-    const response = await fetch(new URL(path, this.url), { ...init, headers: { ...init.headers, authorization: `Bearer ${token}`, ...(id && owner ? { 'x-vesper-lease': leaseKey(token, id, owner) } : {}) }, redirect: 'error', signal: AbortSignal.timeout(this.options.timeoutMs ?? 120000) });
+    const timeout = AbortSignal.timeout(this.options.timeoutMs ?? 120000);
+    const response = await fetch(new URL(path, this.url), { ...init, headers: { ...init.headers, authorization: `Bearer ${token}`, ...(id && owner ? { 'x-vesper-lease': leaseKey(token, id, owner) } : {}) }, redirect: 'error', signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout });
     if (!response.ok) {
       const data = await response.json().catch(() => null) as { error?: string } | null;
       throw Object.assign(new Error(data?.error ?? `Browser service returned ${response.status}`), { status: response.status });
@@ -50,8 +51,18 @@ export class VesperBrowserClient implements ProfileEngine {
   async installBrowser(): Promise<string> { throw new Error('Install Chromium through the independent Vesper Browser service: vesper-browser install (stop the service first).'); }
   async create(settings: Record<string, unknown>) {
     const runId = typeof settings.name === 'string' ? /^run-([a-f0-9-]{36})$/.exec(settings.name)?.[1] : undefined;
-    const response = await this.request('/api/v1/profiles', { method: 'POST', headers: { 'content-type': 'application/json', ...(runId ? { 'x-vesper-run-id': runId, 'idempotency-key': `create-${runId}` } : {}) }, body: JSON.stringify(settings) });
-    const profile = await response.json() as { id: string };
+    const signal = AbortSignal.timeout(this.options.timeoutMs ?? 120000);
+    const init: RequestInit = { method: 'POST', headers: { 'content-type': 'application/json', ...(runId ? { 'x-vesper-run-id': runId, 'idempotency-key': `create-${runId}` } : {}) }, body: JSON.stringify(settings), signal };
+    const admit = async () => (await this.request('/api/v1/profiles', init)).json() as Promise<{ id: string }>;
+    let profile: { id: string };
+    try { profile = await admit(); }
+    catch (error) {
+      const failure = error as { cause?: { code?: string }; status?: number };
+      if (!runId || signal.aborted || failure.status !== undefined || !['UND_ERR_SOCKET', 'ECONNRESET', 'EPIPE'].includes(failure.cause?.code ?? '')) throw error;
+      // Only this exact keyed admission can recover a lost request/reply.
+      // The server refuses incomplete admissions rather than repeating creation.
+      profile = await admit();
+    }
     if (runId) this.owners.set(profile.id, runId);
     return profile;
   }
