@@ -142,7 +142,7 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 | Python clients | verified | [Evidence](../docs/api.md) |
 | Streamed archive transport | verified | [Evidence](../docs/api.md) |
 | Extension-enabled automation | verified | [Evidence](../docs/validation.md) |
-| Selenium qualification | planned | [Evidence](../docs/research/completion-gates.md) |
+| Selenium qualification | verified | [Evidence](../docs/selenium-qualification.md) |
 | Durable event replay coverage | verified | [Evidence](../docs/run-event-replay.md) |
 
 ## Workbench: Release and recovery

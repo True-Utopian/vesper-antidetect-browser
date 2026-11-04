@@ -1,3 +1,7 @@
+## Selenium qualification — 4 November 2026
+
+The unchanged installed Browser0.4.13/Workbench0.5.18 pair passed the optional real Selenium developer workflow on Windows and Linux: 14 assertions per platform, independent archive restore, one owned effect, original-data preservation and normal Quit. Source275/2 skips Windows,270/7 Linux, independent Browser102 passed. Driver/browser versions, HTTP discovery over the guarded policy socket, restrictions and reproduction are recorded in [Selenium qualification](selenium-qualification.md). This adds source tooling and scoped evidence; no desktop/kernel payload was changed. Earlier release records below retain their original scope.
+
 # Validation record
 
 ## Current local pair — 4 November 2026
