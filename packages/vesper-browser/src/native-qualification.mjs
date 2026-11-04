@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import puppeteer from 'puppeteer-core';
 import {observeNativeSurfacePolicies,assertSurfaceObservations,assertRestrictedSurfaces} from './native-surface-qualification.mjs';
+import {cleanupQualificationProcesses} from './native-qualification-cleanup.mjs';
 
 // Independent PNG decoding avoids re-importing export pixels into a canvas,
 // which would pass through the candidate's readback policy a second time.
@@ -229,6 +230,8 @@ try {
 } catch (error) { report.state = 'failed'; report.errors.push(error.message ?? String(error)); report.diagnosticStack = error.stack; }
 finally {
   await active?.close().catch(() => {});
+  try { report.processCleanup = await cleanupQualificationProcesses(executable, temporary); }
+  catch (error) { report.state = 'failed'; report.nativeProof = false; report.errors.push('Qualification process cleanup: ' + error.message); }
   await new Promise(done => fixture.close(done));
   await rm(temporary, { recursive: true, force: true });
   report.completedAt = new Date().toISOString();

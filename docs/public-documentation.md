@@ -13,7 +13,7 @@ The 13-chapter wiki combines the existing bundled API guides with installation, 
 
 ## Maintained sources
 
-Edit `docs/handbook.json` and `packages/vesper-browser/public/docs/guides.json` in the Workbench checkout. In the independent Browser checkout, the same API guide source is `public/docs/guides.json`. The API guide remains bundled in the localhost reference. `scripts/build-public-docs.mjs` generates the website and Markdown wiki from those inputs plus `docs/status.json`; generated copies are not separately maintained prose. Version URLs retain the matching Browser/Workbench pair.
+Both checkouts use `docs/handbook.json` and `packages/vesper-browser/public/docs/guides.json` as their maintained guide sources. The API guide remains bundled in the localhost reference. `scripts/build-public-docs.mjs` generates the website and Markdown wiki from those inputs plus `docs/status.json`; generated copies are not separately maintained prose. Version URLs retain the matching Browser/Workbench pair.
 
 Run `node scripts/build-public-docs.mjs` to create ignored local site output. Run `node scripts/check-public-docs.mjs` to generate an isolated site, validate all internal links and assets, check unique page IDs/version inventory, and reject private machine/credential material or active external resources. CI runs this check on Windows and Linux. The site uses its existing vector moth mark, local CSS and JavaScript; no fonts, analytics or API tokens are loaded from a third party.
 

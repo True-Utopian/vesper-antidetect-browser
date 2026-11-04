@@ -1,4 +1,4 @@
-import { mkdir, writeFile, cp, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, cp, readFile, mkdtemp, rm, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as tar from 'tar';
 
@@ -15,7 +15,9 @@ export function linuxArchiveMode(path,mode,product){
   return (mode&~0o7777)|(sandbox?0o4755:executable?0o755:0o644);
 }
 export async function createDeb({ directory, output, product, version, description }) {
-  const work = join(output, 'deb-stage'), control = join(work, 'control'), data = join(work, 'data');
+  await mkdir(output, { recursive: true });
+  const work = await mkdtemp(join(await realpath(output), '.deb-stage-')), control = join(work, 'control'), data = join(work, 'data');
+  try {
   const packageName = `vesper-${product}`;
   await mkdir(control, { recursive: true }); await mkdir(join(data, 'opt'), { recursive: true });
   await cp(directory, join(data, 'opt', packageName), { recursive: true, verbatimSymlinks:true });
@@ -34,4 +36,10 @@ export async function createDeb({ directory, output, product, version, descripti
   const file = join(output, `${packageName}_${version}_amd64.deb`);
   await writeFile(file, Buffer.concat([Buffer.from('!<arch>\n'), arMember('debian-binary', Buffer.from('2.0\n')), arMember('control.tar.gz', await readFile(controlArchive)), arMember('data.tar.gz', await readFile(dataArchive))]));
   return file;
+  } finally {
+    // The portable archive is built next. Release this private duplicate before
+    // that write, and never merge files left by an earlier package version.
+    if (await realpath(work) !== work) throw new Error('Refusing to remove a redirected Debian staging directory');
+    await rm(work, { recursive: true, force: true });
+  }
 }

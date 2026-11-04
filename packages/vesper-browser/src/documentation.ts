@@ -12,6 +12,21 @@ const assets: Record<string, [string, string]> = {
 };
 
 export async function documentationAsset(pathname: string) {
+  if (pathname.startsWith('/docs/handbook/')) {
+    const path = pathname.slice('/docs/handbook/'.length);
+    // Only generated public files named by the bundled manifest are eligible.
+    // Do not decode or normalize arbitrary paths into this public directory.
+    if (!/^(?:[a-z][a-z0-9-]*\.(?:html|json|txt)|LICENSE\.txt|(?:assets|wiki)\/[a-z][a-z0-9-]*\.(?:html|svg|css|js|png))$/.test(path)) return undefined;
+    const root = new URL('../public/docs/handbook/', import.meta.url);
+    let manifest: { schemaVersion?: number; files?: unknown };
+    try { manifest = JSON.parse(await readFile(new URL('offline-manifest.json', root), 'utf8')); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; }
+    if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.files) || !manifest.files.includes(path)) return undefined;
+    const types: Record<string,string> = { html:'text/html; charset=utf-8', json:'application/json; charset=utf-8', txt:'text/plain; charset=utf-8', css:'text/css; charset=utf-8', js:'application/javascript; charset=utf-8', svg:'image/svg+xml', png:'image/png' };
+    const type = types[path.split('.').at(-1)!];
+    if (!type) return undefined;
+    return { type, body: await readFile(new URL(path, root)) };
+  }
   const entry = assets[pathname];
   if (!entry) return undefined;
   return { type: entry[1], body: await readFile(new URL(`../public/docs/${entry[0]}`, import.meta.url)) };

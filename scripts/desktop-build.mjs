@@ -18,7 +18,8 @@ import { installPayloadDependencies } from './payload-dependencies.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2), product = args[0] ?? 'browser', platform = args[1] ?? process.platform;
-if (!['browser', 'workbench'].includes(product) || !['win32', 'linux'].includes(platform)) throw new Error('Usage: desktop-build.mjs <browser|workbench> <win32|linux> [--dir] [--full]');
+if (!['browser', 'workbench'].includes(product) || !['win32', 'linux'].includes(platform)) throw new Error('Usage: desktop-build.mjs <browser|workbench> <win32|linux> [--dir] [--full] [--payload-only]');
+await promisify(execFile)(process.execPath, [join(root, 'scripts/prepare-offline-handbook.mjs')], { cwd: root, windowsHide: true });
 const outputIndex = args.indexOf('--release-root');
 if (outputIndex >= 0 && (!args[outputIndex + 1] || args[outputIndex + 1].startsWith('--'))) throw new Error('Missing --release-root directory');
 const releaseRoot = outputIndex < 0 ? join(root, 'release') : resolve(args[outputIndex + 1]);
@@ -64,6 +65,12 @@ async function collect(directory) {
 }
 await collect(join(payload, 'node_modules'));
 await writeFile(join(payload, 'THIRD-PARTY-NOTICES.txt'), notices.join('\n'));
+// An add-on needs only the service payload. Prepare it without copying another
+// desktop/native runtime, so disk-constrained builds can qualify one app at a time.
+if (args.includes('--payload-only')) {
+  console.log(`${name} ${metadata.version} production payload prepared: ${payload}`);
+  process.exit(0);
+}
 await mkdir(join(stage, 'desktop'), { recursive: true });
 for (const file of ['main.cjs', 'data-location.cjs', 'service.mjs','bundled-kernel.mjs','service-process.cjs','preload.cjs','update-contract.cjs','seed-files.mjs','plugin-contract.cjs','workbench-host.cjs']) await cp(join(root, 'desktop', file), join(stage, 'desktop', file));
 await writeFile(join(stage,'desktop/update-public-key.pem'),(await updateKey()).publicKey);
@@ -136,3 +143,7 @@ for (const file of await readdir(output)) {
 }
 await writeFile(join(output, 'SHA256SUMS'), hashes.join('\n') + '\n');
 console.log(`${name} by true-utopian packaged locally: ${output}`);
+// This is a one-shot CLI. Packaging dependencies can retain an idle Windows
+// console handle after all artifacts, proofs and checksums have been awaited.
+await Promise.all([new Promise(done => process.stdout.write('', done)), new Promise(done => process.stderr.write('', done))]);
+process.exit(0);

@@ -1,6 +1,6 @@
 # Author and publish flows
 
-Browser 0.4.10 / Workbench 0.5.15. By **true-utopian**.
+Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
 
 Keep drafts editable and admitted runs immutable.
 
