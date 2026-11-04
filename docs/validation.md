@@ -1,3 +1,7 @@
+## Visual branches and counted loops — 4 November 2026
+
+Browser0.4.14/Workbench0.5.19 passed both packaged and installed platforms, exact dependency graphs, proxy/API/native/Python, notification replay, SDK restore and normal restart/preservation. Four focused installed-executable flow checks per OS independently confirm three body actions versus none on the alternate branch, immutable republish and restart rebinding; 21 Windows and41 Linux installed captures were reviewed. Source296/2skips Windows and291/7Linux, independent Browser102 passed. The unchanged native kernel gains no broader masking claim. [Qualification, versions and limits](visual-flow-qualification.md). Historical records below retain their original scope.
+
 ## Selenium qualification — 4 November 2026
 
 The unchanged installed Browser0.4.13/Workbench0.5.18 pair passed the optional real Selenium developer workflow on Windows and Linux: 14 assertions per platform, independent archive restore, one owned effect, original-data preservation and normal Quit. Source275/2 skips Windows,270/7 Linux, independent Browser102 passed. Driver/browser versions, HTTP discovery over the guarded policy socket, restrictions and reproduction are recorded in [Selenium qualification](selenium-qualification.md). This adds source tooling and scoped evidence; no desktop/kernel payload was changed. Earlier release records below retain their original scope.

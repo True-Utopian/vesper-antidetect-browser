@@ -502,8 +502,8 @@
         {
           "id": "workbench-visual-branches-and-loops",
           "name": "Visual branches and loops",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "verified",
+          "evidence": "docs/visual-flow-qualification.md"
         },
         {
           "id": "workbench-extraction-authoring",
