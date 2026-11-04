@@ -1,6 +1,6 @@
 # Archives and extensions
 
-Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
+Browser 0.4.14 / Workbench 0.5.19. By **true-utopian**.
 
 Transport profile state and verify the saved result.
 

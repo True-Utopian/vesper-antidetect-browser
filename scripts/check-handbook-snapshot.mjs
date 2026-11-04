@@ -21,6 +21,6 @@ try{
  const retained=await build(after,true);assert.deepEqual(retained,initial);assert.deepEqual(await inventory(after),await inventory(before),'Live promotion rewrote an installed release guide');
  await assert.rejects(readFile(join(fixture,'docs/wiki/README.md')),{code:'ENOENT'});
  const current=await build(live,false);assert.equal(current.counts.verified,previousLiveCount+1);assert.notEqual((await inventory(live)).find(([path])=>path===join('assets','status.svg'))?.[1],(await inventory(before)).find(([path])=>path===join('assets','status.svg'))?.[1]);
- assert.match(await readFile(join(fixture,'docs/wiki/README.md'),'utf8'),/guide walkthrough passed for this pair/);
+ assert.match(await readFile(join(fixture,'docs/wiki/README.md'),'utf8'),/guide walkthrough milestone is verified; match your version to its recorded release evidence/);
  console.log(JSON.stringify({state:'passed',offlineInventory:initial.counts.verified,liveInventory:current.counts.verified,offlineFilesUnchanged:(await inventory(before)).length,publicMarkdownUnaffectedByOfflineGeneration:true}));
 }finally{assert.equal(await realpath(fixture),fixture);assert.ok(relative(base,fixture).startsWith('handbook-snapshot-check-'));await rm(fixture,{recursive:true});}

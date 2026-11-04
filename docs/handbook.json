@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "title": "Vesper handbook",
   "release": {
-    "browser": "0.4.13",
-    "workbench": "0.5.18",
+    "browser": "0.4.14",
+    "workbench": "0.5.19",
     "reviewed": "2026-11-03"
   },
   "chapters": [
@@ -13,12 +13,16 @@
       "description": "Choose the right package and preserve your local store.",
       "sections": [
         {
+          "title": "Unreleased control-flow candidate",
+          "text": "Browser 0.4.14 and Workbench 0.5.19 are source candidates for visual page branches and counted loops. Packaged and actual installed qualification remains pending. The accepted installed pair remains Browser 0.4.13 / Workbench 0.5.18 until matching qualification records pass. Do not treat source tests as an accepted installer."
+        },
+        {
           "title": "Availability",
-          "text": "This handbook targets Browser 0.4.13 and Workbench 0.5.18. Check the matching release qualification record before replacing an existing installation. Public source is available under the MIT license. Installers and native runtime binaries are not publicly distributed yet. There is no public download link to a tested binary release; use your locally built and verified artifacts. Installed desktop apps include their own Node runtime. Ordinary users do not need the Chromium source checkout."
+          "text": "This handbook targets Browser 0.4.14 and Workbench 0.5.19. Check the matching release qualification record before replacing an existing installation. Public source is available under the MIT license. Installers and native runtime binaries are not publicly distributed yet. There is no public download link to a tested binary release; use your locally built and verified artifacts. Installed desktop apps include their own Node runtime. Ordinary users do not need the Chromium source checkout."
         },
         {
           "title": "Windows x64",
-          "text": "Use the matching locally generated Browser NSIS .exe and its signed update manifest. Finish active work and use the tray menu’s Quit before replacing files. The accepted local upgrade uses an idle preflight and a fresh independently verified private backup; preserve that backup and its receipt. Browser 0.4.13 and Workbench 0.5.18 are the current local candidates. Their release acceptance requires the matching package and installed-app checks. A standalone Workbench NSIS installation has not been qualified for this pair. Windows Authenticode publisher signing remains unconfigured.",
+          "text": "Use the matching locally generated Browser NSIS .exe and its signed update manifest. Finish active work and use the tray menu’s Quit before replacing files. The accepted local upgrade uses an idle preflight and a fresh independently verified private backup; preserve that backup and its receipt. Browser 0.4.14 and Workbench 0.5.19 are the current local candidates. Their release acceptance requires the matching package and installed-app checks. A standalone Workbench NSIS installation has not been qualified for this pair. Windows Authenticode publisher signing remains unconfigured.",
           "image": {
             "file": "guide-browser-profiles.png",
             "alt": "Vesper Browser profile manager with an empty local profile list",
@@ -50,7 +54,7 @@
         },
         {
           "title": "Add Workbench",
-          "text": "Open Add-ons → Install Workbench. Select the signed .vesper-plugin.json manifest beside its matching .vplugin.tgz archive for Workbench 0.5.18. Review the reported version and permissions. Browser verifies its pinned signing key, package size and digest. Open Workbench from the new sidebar entry. Close standalone Workbench first: the standalone app and add-on share one Workbench store and cannot own it simultaneously.",
+          "text": "Open Add-ons → Install Workbench. Select the signed .vesper-plugin.json manifest beside its matching .vplugin.tgz archive for Workbench 0.5.19. Review the reported version and permissions. Browser verifies its pinned signing key, package size and digest. Open Workbench from the new sidebar entry. Close standalone Workbench first: the standalone app and add-on share one Workbench store and cannot own it simultaneously.",
           "image": {
             "file": "guide-workbench.png",
             "alt": "Vesper Workbench runs and archives workspace inside Browser",
