@@ -616,8 +616,8 @@
         {
           "id": "workbench-selenium-qualification",
           "name": "Selenium qualification",
-          "state": "planned",
-          "evidence": "docs/research/completion-gates.md"
+          "state": "verified",
+          "evidence": "docs/selenium-qualification.md"
         },
         {
           "id": "workbench-durable-event-replay-coverage",
