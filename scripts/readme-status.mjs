@@ -42,7 +42,9 @@ for(const [index,product]of ['Browser','Workbench'].entries()){
   }
   for(const [state,path]of Object.entries(paths))if(path.length)svg.push(`<path fill="${state==='verified'?'#2ea043':'#6e7681'}" d="${path.join('')}"/>`);
   const label={'Identity and rendering':'Fingerprint','Connections':'Proxies','Desktop and engines':'Engines','Run lifecycle':'Runs','Visual flows':'Flows','Integration':'API','Release and recovery':'Recovery'}[group.name]??group.name;
-  svg.push(`<text x="${rx+2}" y="${ry+14}" fill="#fff" stroke="#0d1117" stroke-width="3" paint-order="stroke" font-family="sans-serif" font-size="13">${escape(label)}</text></g>`);
+  // Small regions keep their full accessible title instead of a clipped label.
+  if(w>=4+Math.ceil(label.length*8.5)&&h>=18)svg.push(`<text x="${rx+2}" y="${ry+14}" fill="#fff" stroke="#0d1117" stroke-width="3" paint-order="stroke" font-family="sans-serif" font-size="13">${escape(label)}</text>`);
+  svg.push('</g>');
  }
 }
 svg.push('</svg>\n');
