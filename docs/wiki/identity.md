@@ -1,6 +1,6 @@
 # Native identity settings
 
-Browser 0.4.10 / Workbench 0.5.15. By **true-utopian**.
+Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
 
 Use qualified policies and understand their limits.
 

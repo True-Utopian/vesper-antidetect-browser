@@ -1,6 +1,6 @@
 # Your first Browser and Workbench run
 
-Browser 0.4.10 / Workbench 0.5.15. By **true-utopian**.
+Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
 
 Follow the local workflow from a profile to a saved archive.
 
@@ -10,11 +10,15 @@ Launch Vesper Browser and open Profiles. Create a profile with a descriptive nam
 
 ## Add Workbench
 
-Open Add-ons → Install Workbench. Select the signed .vesper-plugin.json manifest beside its matching .vplugin.tgz archive for Workbench 0.5.15. Review the reported version and permissions. Browser verifies its pinned signing key, package size and digest. Open Workbench from the new sidebar entry. Close standalone Workbench first: the standalone app and add-on share one Workbench store and cannot own it simultaneously.
+Open Add-ons → Install Workbench. Select the signed .vesper-plugin.json manifest beside its matching .vplugin.tgz archive for Workbench 0.5.17. Review the reported version and permissions. Browser verifies its pinned signing key, package size and digest. Open Workbench from the new sidebar entry. Close standalone Workbench first: the standalone app and add-on share one Workbench store and cannot own it simultaneously.
+
+![Vesper Workbench runs and archives workspace inside Browser](../assets/guide-workbench.png)
+
+Vesper Workbench 0.5.16, captured from the native embedded workspace in an isolated test store. Open the image for full size.
 
 ## Run the owned example
 
-In Workbench, select New run and choose the bundled local fixture automation from the installed automation list. Use its local fixture destination and default inputs. Review the selected engine and profile policy, then submit once. Observe the run’s state in Runs & archives. If it awaits an operator action, use the matching input or finish control after inspecting the browser. Avoid substituting a third-party website for the owned example.
+In Workbench, select New run → Open and inspect a browser (automation ID inspect). Choose a local page that you own in Page URL and select Chromium for a standard archive walkthrough. Submit once, inspect the browser and wait until the run shows Ready to finish. Running alone does not mean Finish + save is available. Choose Finish + save only when ready. For the bundled sign-in flow, follow its displayed local fixture inputs instead; do not substitute a third-party website for an owned example.
 
 ## Verify the result
 

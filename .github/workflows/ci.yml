@@ -15,4 +15,7 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: node scripts/check-public-docs.mjs
+      - run: node scripts/prepare-offline-handbook.mjs --check
+      - run: node scripts/check-handbook-examples.mjs
+      - run: node scripts/check-handbook-snapshot.mjs
       - run: node --import tsx --test test/linux-native-package.test.ts

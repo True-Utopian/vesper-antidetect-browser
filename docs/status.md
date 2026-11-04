@@ -1,6 +1,6 @@
 # Status inventory
 
-Updated 2026-11-03.
+Updated 2026-11-04.
 
 Named acceptance checks for the current local Vesper roadmap. Counts are not a percentage of vendor features, total engineering effort or detection resistance.
 
@@ -170,4 +170,4 @@ Green in the README treemap means desktop verified. Grey means acceptance is pen
 
 | Acceptance check | State | Evidence |
 | --- | --- | --- |
-| Browser/Workbench user and developer guides | planned | [Evidence](../docs/documentation-roadmap.md) |
+| Browser/Workbench user and developer guides | verified | [Evidence](../docs/full-handbook-qualification.md) |

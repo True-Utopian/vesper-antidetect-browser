@@ -1,0 +1,6 @@
+const tabs=[...document.querySelectorAll('[role="tab"]')];
+function select(tab){for(const item of tabs){const active=item===tab;item.setAttribute('aria-selected',String(active));item.tabIndex=active?0:-1;document.getElementById(item.getAttribute('aria-controls')).hidden=!active;}}
+for(const tab of tabs){tab.addEventListener('click',()=>select(tab));tab.addEventListener('keydown',event=>{let index=tabs.indexOf(tab);if(event.key==='ArrowRight')index=(index+1)%tabs.length;else if(event.key==='ArrowLeft')index=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else return;event.preventDefault();select(tabs[index]);tabs[index].focus();});}
+const search=document.querySelector('#topic-search');
+if(window.matchMedia('(max-width:700px)').matches){const contents=document.querySelector('.wiki-nav details');if(contents)contents.open=false;}
+if(search){const links=[...document.querySelectorAll('[data-topic]')];search.addEventListener('input',()=>{const query=search.value.toLocaleLowerCase().trim();for(const link of links)link.hidden=!link.textContent.toLocaleLowerCase().includes(query);document.getElementById('search-empty').hidden=links.some(link=>!link.hidden);});for(const link of links){if(new URL(link.href).pathname===location.pathname)link.setAttribute('aria-current','page');}}

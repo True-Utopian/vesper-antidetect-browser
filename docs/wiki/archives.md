@@ -1,6 +1,6 @@
 # Archives and extensions
 
-Browser 0.4.10 / Workbench 0.5.15. By **true-utopian**.
+Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
 
 Transport profile state and verify the saved result.
 
@@ -19,5 +19,38 @@ Browser /extensions/import accepts application/zip, up to 40 MiB compressed and 
 ## Binary requests
 
 Send archive or extension bytes with the exact documented content type; do not wrap them in JSON. JSON request examples do not apply to binary endpoints. Keep profile archives private: cookies, browser history and website storage may contain sensitive data.
+
+## Restore a saved run in the manager
+
+Open Runs & archives and select a saved run. Download its archive and retain the recorded SHA-256 and byte size. In Browser Profiles, use Import and select that .tgz file. Import creates an independent profile with a new ID; it does not overwrite the original. Open the imported profile, inspect the expected owned website state, then stop it normally. Proxy credentials are omitted from transport and must be assigned again. Same-machine cookie recovery is tested separately from cross-PC cookie portability; keep the original profile until you have verified the restored copy.
+
+## Restore with the TypeScript client
+
+Use a private Browser origin and token-file path discovered from its running service. Verify the downloaded file digest against the saved run record before importing. The helper below streams the saved file through the Browser archive API; keep it out of source control.
+
+```text
+import { VesperBrowserClient } from "@true-utopian/vesper-browser";
+
+const url = process.env.VESPER_BROWSER_ORIGIN;
+const tokenFile = process.env.VESPER_BROWSER_TOKEN_FILE;
+if (!url || !tokenFile) {
+  throw new Error("Set the private Browser origin and token-file path first.");
+}
+const browser = new VesperBrowserClient({ url, tokenFile });
+const restored = await browser.importProfile("owned-saved-profile.tgz");
+console.log(restored.id); // Independent profile; original remains intact.
+```
+
+## Restore with cURL
+
+Use the Browser token, not the Workbench token. POST the raw gzip archive, without a JSON wrapper. The server enforces a 512 MiB import limit. A successful import returns the new profile; inspect it before deleting any original data.
+
+```text
+curl --fail \
+  --header "Authorization: Bearer $VESPER_BROWSER_TOKEN" \
+  --header "Content-Type: application/gzip" \
+  --data-binary @owned-saved-profile.tgz \
+  "$VESPER_BROWSER_ORIGIN/api/v1/profiles/import"
+```
 
 [Wiki contents](README.md) · [Report a correction](https://github.com/True-Utopian/vesper-workbench/issues)

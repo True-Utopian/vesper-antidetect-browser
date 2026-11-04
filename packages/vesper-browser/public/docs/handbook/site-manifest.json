@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "browser": "0.4.12",
+    "workbench": "0.5.17",
+    "reviewed": "2026-11-03"
+  },
+  "versionPath": "v/0.4.12-0.5.17",
+  "chapters": [
+    {
+      "id": "installation",
+      "title": "Install on Windows or Linux"
+    },
+    {
+      "id": "quickstart",
+      "title": "Your first Browser and Workbench run"
+    },
+    {
+      "id": "connect",
+      "title": "Connect to the local API"
+    },
+    {
+      "id": "profiles",
+      "title": "Profiles, revisions and ownership"
+    },
+    {
+      "id": "identity",
+      "title": "Native identity settings"
+    },
+    {
+      "id": "proxies",
+      "title": "Proxy connections"
+    },
+    {
+      "id": "archives",
+      "title": "Archives and extensions"
+    },
+    {
+      "id": "runs",
+      "title": "Runs and saved results"
+    },
+    {
+      "id": "flows",
+      "title": "Author and publish flows"
+    },
+    {
+      "id": "schedules",
+      "title": "Schedules and timezones"
+    },
+    {
+      "id": "errors",
+      "title": "Errors and safe recovery"
+    },
+    {
+      "id": "updates",
+      "title": "Updates, backups and recovery"
+    },
+    {
+      "id": "development",
+      "title": "Build and contribute"
+    }
+  ],
+  "counts": {
+    "verified": 81,
+    "total": 106
+  },
+  "generatedFrom": [
+    "docs/handbook.json",
+    "packages/vesper-browser/public/docs/guides.json",
+    "docs/status.json"
+  ]
+}

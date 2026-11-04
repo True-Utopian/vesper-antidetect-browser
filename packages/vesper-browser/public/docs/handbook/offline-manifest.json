@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "release": {
+    "browser": "0.4.12",
+    "workbench": "0.5.17",
+    "reviewed": "2026-11-03"
+  },
+  "files": [
+    "LICENSE.txt",
+    "assets/guide-browser-profiles.png",
+    "assets/guide-workbench.png",
+    "assets/site.css",
+    "assets/site.js",
+    "assets/status.svg",
+    "assets/vesper-mark.svg",
+    "downloads.html",
+    "index.html",
+    "offline-manifest.json",
+    "site-manifest.json",
+    "status.html",
+    "wiki/archives.html",
+    "wiki/connect.html",
+    "wiki/development.html",
+    "wiki/errors.html",
+    "wiki/flows.html",
+    "wiki/identity.html",
+    "wiki/index.html",
+    "wiki/installation.html",
+    "wiki/profiles.html",
+    "wiki/proxies.html",
+    "wiki/quickstart.html",
+    "wiki/runs.html",
+    "wiki/schedules.html",
+    "wiki/updates.html"
+  ]
+}

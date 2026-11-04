@@ -13,6 +13,8 @@ try{
  assert.equal(manifest.chapters.length,13);assert.equal(manifest.counts.total,106);
  const status=JSON.parse(await readFile(join(root,'docs/status.json'),'utf8'));
  assert.equal(manifest.counts.verified,status.groups.flatMap(g=>g.checks).filter(c=>c.state==='verified').length);
+ const guidePassed=status.groups.flatMap(g=>g.checks).some(c=>c.id==='workbench-user-developer-guides'&&c.state==='verified');
+ assert.match(await readFile(join(output,'wiki/index.html'),'utf8'),guidePassed?/guide walkthrough passed for this pair/:/guide acceptance walkthrough remains pending/);
  let checkedLinks=0,htmlPages=0;
  for(const file of files){
   const text=await readFile(file,'utf8');

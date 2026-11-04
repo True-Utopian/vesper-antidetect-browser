@@ -32,6 +32,14 @@ Acceptance: actual installed Windows and Linux controls open the correct local d
 
 ## Browser and Workbench user/developer guides
 
+**Locally qualified 4 November 2026:** Browser 0.4.12 / Workbench 0.5.17 passed the installed Windows and Linux walkthroughs. [Measured acceptance and limits](full-handbook-qualification.md). Public source publication remains gated by matching CI.
+
 Provide searchable, versioned guides covering first launch, kernel installation, profiles and backup/restore, proxy manager, supported identity settings, Workbench installation/removal, visual flows, scripts, scheduling, SDK/API use, update/rollback limits and troubleshooting. Include clear screenshots of the actual UI and examples validated against the installed pair. Use one maintained documentation source for the website, wiki links and bundled local guide to avoid contradictory instructions.
 
 Acceptance: a clean Windows and Linux installation can follow the quickstart and complete a Browser-owned Workbench run, verify the saved archive and restore an owned profile using the guides. Check navigation, offline packaged guidance, contribution instructions, version compatibility and SDK examples. Keep unimplemented features and unqualified recovery behavior explicit.
+
+### Build-time progress and the live checklist
+
+The public site follows `docs/status.json`. Installed guides retain the progress inventory captured when that release was packaged; a later passing check must not silently change an already qualified bundle. Instructions still come from the same handbook and API guide sources.
+
+After setting a new release's source/product/lock versions, run `node scripts/prepare-offline-handbook.mjs --capture-status` once. This records the inventory and its artwork under `docs/releases/<browser>-<workbench>/`; existing snapshots cannot be overwritten. Commit those original source snapshots with the generated handbook. `--check` compares the bundled guide with that release's snapshot. Offline generation does not rewrite the public Markdown wiki. Public status may then advance after actual acceptance and matching CI without rebuilding unchanged application binaries.

@@ -27,6 +27,16 @@ test('bundled docs expose only static contract material, preserve profiles and l
     assert.deepEqual(await (await fetch(origin + '/docs/openapi.json')).json(), contract);
     assert.equal((await fetch(origin + '/docs/admin-token')).status, 404);
     assert.equal((await fetch(origin + '/docs/guides.json', { method: 'POST' })).status, 404);
+    const manifest = await (await fetch(origin + '/docs/handbook/offline-manifest.json')).json() as { files: string[] };
+    assert.equal(manifest.files.length, 26);
+    for (const file of manifest.files) {
+      const response = await fetch(origin + '/docs/handbook/' + file);
+      assert.equal(response.status, 200, file);
+      if (file.endsWith('.png')) assert.equal(response.headers.get('content-type'), 'image/png');
+      const contents = await response.text();
+      assert.ok(!contents.includes(token)); assert.ok(!contents.includes(profile.id));
+    }
+    for (const path of ['admin-token', 'wiki/private.html', 'wiki/%2e%2e%2fadmin-token', 'assets/secrets.json']) assert.equal((await fetch(origin + '/docs/handbook/' + path)).status, 404, path);
     assert.deepEqual((await browser.listProfiles()).map(p => p.id), [profile.id]);
     assert.equal(documentationContext('Workbench', 'test', 'http://user:secret@localhost:12').browserDocs, undefined);
     assert.equal(documentationContext('Workbench', 'test', 'https://example.com').browserDocs, undefined);
