@@ -1,6 +1,10 @@
 # Qualified Linux native runtime
 
-## Current pair — 3 November 2026
+## Current local pair — 4 November 2026
+
+Browser **0.4.13** / Workbench **0.5.18** passed packaged and actual installed qualification on Windows and Linux, including 13 installed API checks with durable disconnected notification replay, native/proxy/Python integration, normal quit/restart and the exact SDK restore walkthrough. The full original stores were preserved behind independently verified backups. See [replay acceptance and limits](run-event-replay.md#qualified-local-release). Matching Windows/Linux source CI gates public acceptance. The full implemented roadmap remains pending.
+
+## Previous pair — 3 November 2026
 
 Browser **0.4.10** and signed Workbench **0.5.15** passed installed qualification in an isolated non-root account. Both checksum-matching tar archives were freshly extracted and their actual per-user portable installers executed into new version directories. Installed ASAR/trust metadata and every native runtime component matched the packaged records. The original private store was fully backed up and verified before installation; original bytes remained intact except the intended add-on registry.
 

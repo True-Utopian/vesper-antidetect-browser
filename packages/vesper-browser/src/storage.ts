@@ -7,6 +7,17 @@ import {
 import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+/** Retry only the same atomic filesystem publication, never its producer. */
+export async function atomicRename(source: string, destination: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try { await rename(source, destination); return; }
+    catch (error) {
+      if (process.platform !== "win32" || attempt >= 5 || !["EPERM", "EBUSY", "EACCES"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
+      await new Promise(done => setTimeout(done, 50 * 2 ** attempt));
+    }
+  }
+}
+
 export async function durableWrite(
   file: string,
   contents: string | Buffer,
@@ -20,7 +31,10 @@ export async function durableWrite(
   } finally {
     await handle.close();
   }
-  await rename(temporary, file);
+  // Windows readers/indexers can briefly hold the destination without delete
+  // sharing. Retry only publishing these already-synced bytes; never remove
+  // the old snapshot or repeat the mutation which produced the new one.
+  await atomicRename(temporary, file);
   if (process.platform !== "win32") {
     const directory = await open(dirname(file), "r");
     try {

@@ -92,6 +92,10 @@ if (full && !(platform==='linux'&&nativeKernel)) {
   if (!(await stat(upstream)).isFile()) throw new Error('The upstream browser cache is unavailable');
   resources.push({ from: dirname(upstream), to: 'chromium', filter: ['**/*', '!**/*_tests.exe', '!**/*.pdb'] });
 }
+let packageFinished = false;
+// Packaging dependencies can exit on an empty event loop even when a stream
+// promise is unsettled. An incomplete package must never report success.
+process.on('exit', () => { if (!packageFinished) { process.stderr.write('Desktop packaging stopped before artifacts, signatures and checksums completed.\n'); process.exitCode = 1; } });
 const artifacts = await build({ projectDir: stage, publish: 'never', targets: (platform === 'win32' ? Platform.WINDOWS : Platform.LINUX).createTarget(args.includes('--dir') || platform === 'linux' ? 'dir' : 'nsis', Arch.x64), config: {
   appId: `io.true-utopian.vesper.${product}`, productName: name, executableName: `vesper-${product}`, electronVersion: rootPackage.devDependencies.electron,
   directories: { output }, files: ['desktop/**/*', 'package.json', '!node_modules/**/*'], extraResources: resources, asar: true, npmRebuild: false,
@@ -146,4 +150,5 @@ console.log(`${name} by true-utopian packaged locally: ${output}`);
 // This is a one-shot CLI. Packaging dependencies can retain an idle Windows
 // console handle after all artifacts, proofs and checksums have been awaited.
 await Promise.all([new Promise(done => process.stdout.write('', done)), new Promise(done => process.stderr.write('', done))]);
+packageFinished = true;
 process.exit(0);

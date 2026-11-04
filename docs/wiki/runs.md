@@ -1,6 +1,6 @@
 # Runs and saved results
 
-Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
+Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
 
 Admit work, inspect state and finish without losing the profile.
 
@@ -23,5 +23,9 @@ When saved, download /runs/{id}/artifact and verify its recorded digest and size
 ## Wait for Ready to finish
 
 Open and inspect a browser (inspect) first navigates to your chosen page, then waits for an operator action. Wait until the UI says Ready to finish, or GET /runs/{id} returns waitingForFinish: true, before sending Finish + save or POST /runs/{id}/finish. The running state alone is not sufficient: an early finish returns HTTP 409. Re-read the current run and inspect its state rather than resubmitting the automation.
+
+## Durable update reconnects
+
+GET /api/v1/events sends run notifications with committed journal IDs. Keep the last consumed ID and send Last-Event-ID when reconnecting; the browser EventSource does this automatically. A reset event asks for GET /api/v1/runs because its cursor is new, expired or belongs to another journal. Notification replay never admits or repeats a browser action. Full refreshes preserve newer received updates. History is bounded to 512 notifications and 8 MiB; a write failure closes streams and new streams return 503 until service restart. Run-state reads remain available. Cookie sessions require signing in again after a service restart; bearer clients can resume the retained cursor. Notification commits and canonical run writes are separate transactions, so a notification is not proof that an external action completed.
 
 [Wiki contents](README.md) · [Report a correction](https://github.com/True-Utopian/vesper-workbench/issues)

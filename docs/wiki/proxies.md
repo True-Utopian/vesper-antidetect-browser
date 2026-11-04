@@ -1,6 +1,6 @@
 # Proxy connections
 
-Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
+Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
 
 Store credentials locally and inspect routing failures.
 

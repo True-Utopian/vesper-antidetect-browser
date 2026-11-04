@@ -1,8 +1,8 @@
 import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
-import { durableWrite } from './storage.js';
+import { durableWrite, atomicRename } from './storage.js';
 import { extractEngineZip } from './zip.js';
 
 export interface BrowserExtension {
@@ -12,12 +12,7 @@ export interface BrowserExtension {
 const identifier = /^[a-f0-9]{64}$/;
 const limit = 128 * 1024 ** 2;
 async function publishDirectory(source: string, destination: string) {
-  // Windows indexers can briefly hold a newly extracted file. Keep staging
-  // private and retry the atomic publish, rather than exposing partial files.
-  for(let attempt=0;;attempt++){
-    try{await rename(source,destination);return;}
-    catch(error){if(process.platform!=='win32'||attempt>=5||!['EPERM','EBUSY','EACCES'].includes((error as NodeJS.ErrnoException).code??''))throw error;await new Promise(done=>setTimeout(done,50*2**attempt));}
-  }
+  await atomicRename(source, destination);
 }
 export function validateExtensionIds(value: unknown): string[] {
   if (!Array.isArray(value) || value.length > 20 || value.some(id => typeof id !== 'string' || !identifier.test(id)) || new Set(value).size !== value.length) throw new Error('Assign up to 20 unique local extension package IDs');

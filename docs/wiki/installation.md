@@ -1,16 +1,16 @@
 # Install on Windows or Linux
 
-Browser 0.4.12 / Workbench 0.5.17. By **true-utopian**.
+Browser 0.4.13 / Workbench 0.5.18. By **true-utopian**.
 
 Choose the right package and preserve your local store.
 
 ## Availability
 
-This handbook targets Browser 0.4.12 and Workbench 0.5.17. Check the matching release qualification record before replacing an existing installation. Public source is available under the MIT license. Installers and native runtime binaries are not publicly distributed yet. There is no public download link to a tested binary release; use your locally built and verified artifacts. Installed desktop apps include their own Node runtime. Ordinary users do not need the Chromium source checkout.
+This handbook targets Browser 0.4.13 and Workbench 0.5.18. Check the matching release qualification record before replacing an existing installation. Public source is available under the MIT license. Installers and native runtime binaries are not publicly distributed yet. There is no public download link to a tested binary release; use your locally built and verified artifacts. Installed desktop apps include their own Node runtime. Ordinary users do not need the Chromium source checkout.
 
 ## Windows x64
 
-Use the matching locally generated Browser NSIS .exe and its signed update manifest. Finish active work and use the tray menu’s Quit before replacing files. The accepted local upgrade uses an idle preflight and a fresh independently verified private backup; preserve that backup and its receipt. Browser 0.4.12 and Workbench 0.5.17 are the current local candidates. Their release acceptance requires the matching package and installed-app checks. A standalone Workbench NSIS installation has not been qualified for this pair. Windows Authenticode publisher signing remains unconfigured.
+Use the matching locally generated Browser NSIS .exe and its signed update manifest. Finish active work and use the tray menu’s Quit before replacing files. The accepted local upgrade uses an idle preflight and a fresh independently verified private backup; preserve that backup and its receipt. Browser 0.4.13 and Workbench 0.5.18 are the current local candidates. Their release acceptance requires the matching package and installed-app checks. A standalone Workbench NSIS installation has not been qualified for this pair. Windows Authenticode publisher signing remains unconfigured.
 
 ![Vesper Browser profile manager with an empty local profile list](../assets/guide-browser-profiles.png)
 

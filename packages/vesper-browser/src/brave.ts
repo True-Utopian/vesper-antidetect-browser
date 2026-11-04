@@ -1,11 +1,11 @@
-import { mkdir, readFile, access, rm,rename } from 'node:fs/promises';
+import { mkdir, readFile, access, rm } from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import { join, resolve,sep } from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import {extractEngineZip} from './zip.js';
-import { durableWrite } from './storage.js';
+import { durableWrite, atomicRename } from './storage.js';
 export async function installBrave(directory: string, version: string) {
   if (!/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,5}$/.test(version)) throw new Error('Invalid Brave version');
   if (process.arch !== 'x64' || !['win32','linux'].includes(process.platform)) throw new Error('Brave integration currently requires Windows/Linux x64');
@@ -23,7 +23,7 @@ export async function installBrave(directory: string, version: string) {
     await pipeline(Readable.fromWeb(download.body as any),new Transform({transform(chunk:Buffer,_encoding,callback){count+=chunk.length;hash.update(chunk);callback(count>asset.size?new Error('Brave archive exceeds its declared size'):null,chunk);}}),createWriteStream(archive,{flags:'wx',mode:0o600}));
     if(count!==asset.size||hash.digest('hex')!==asset.digest.slice(7))throw new Error('Brave archive digest does not match the official release');
     const unpacked=join(staging,'engine');await mkdir(unpacked);await extractEngineZip(archive,unpacked);
-    const binary=process.platform==='win32'?'brave.exe':'brave';await access(join(unpacked,binary));await rename(unpacked,destination);
+    const binary=process.platform==='win32'?'brave.exe':'brave';await access(join(unpacked,binary));await atomicRename(unpacked,destination);
     const executablePath=join(destination,binary);
     const record={family:'brave',buildId:version,executablePath,sha256:asset.digest.slice(7),source:`https://github.com/brave/brave-browser/releases/tag/v${version}`,nativePrivacy:'Brave Shields / native fingerprint protection',stagedAt:new Date().toISOString()};
     await durableWrite(metadata,JSON.stringify(record));return record;
